@@ -1,4 +1,4 @@
-// systemd - Managing systemd services to persist charge limit after restart/hibernation/sleep
+// Package systemd - Managing systemd services to persist charge limit after restart/hibernation/sleep
 package systemd
 
 import (
@@ -74,6 +74,7 @@ func configs() ([]config, error) {
 	}, nil
 }
 
+// Systemd directory
 type Systemd struct{ dir string }
 
 // New creates a new Systemd with the directory set to

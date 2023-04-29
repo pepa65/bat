@@ -1,4 +1,4 @@
-// bat - Battery management utility for Linux
+// bat - Battery charge limit management for Linux
 package main
 
 import "github.com/pepa65/bat/internal/cli"

@@ -1,4 +1,4 @@
-// power - I/O for /sys/class/power_supply
+// Package power - I/O for /sys/class/power_supply
 package power
 
 import (
@@ -11,7 +11,7 @@ import (
 // Variable represents a /sys/class/power_supply/ device variable.
 type Variable uint8
 
-const (
+const ( // Entries of /sys/class/power_supply/
 	Capacity Variable = iota + 1
 	Status
 	Threshold

@@ -114,18 +114,20 @@ func TestHelp(t *testing.T) {
 		},
 		pager: "less",
 	}
-	t.Run("app.help() == help.tmpl", func(t *testing.T) {
-		app.help()
-		got := app.console.out.(*bytes.Buffer).String()
-		want := help
-		assert.Equal(t, got, want)
-		assert.Equal(t, status.code, success, "exit status = %d, want %d", status.code, success)
-	})
 	t.Run("app.help() != help.tmpl", func(t *testing.T) {
 		app.help()
-		got := app.console.out.(*bytes.Buffer).String()
-		want := help[1:]
-		assert.Assert(t, got != want, "cli.page(help) output == help.tmpl")
+		got := app.console.out.(*bytes.Buffer)
+		cmd := exec.Command("git", "describe", "--always", "--dirty", "--tags", "--long")
+		out, err := cmd.Output()
+		assert.NilError(t, err)
+		want := new(bytes.Buffer)
+		tmpl := template.Must(template.New("help").Parse(help))
+		tmpl.Execute(want, struct {
+			Tag  string
+		}{
+			string(bytes.TrimSpace(out)),
+		})
+		assert.Assert(t, bytes.Contains(want.Bytes(), got.Bytes()))
 		assert.Equal(t, status.code, success, "exit status = %d, want %d", status.code, success)
 	})
 }

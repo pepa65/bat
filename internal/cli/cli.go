@@ -1,4 +1,4 @@
-// cli - Command line user interface
+// Package cli - Command line user interface
 package cli
 
 import (
