@@ -5,12 +5,12 @@
 ```
 Usage:  bat [<option>]
   Options:
-    -s/--status (default)    Display the charge level, status and charge limit
-    -p/--persist             Persist the currently set threshold (privileged)
-    -c/--clear               Clear persistence of the charge limit (privileged)
-    -l/--limit <pct>         Set charge limit to <pct> percent (privileged)
-    -h/--help                Display only this help text.
-    -V/--version             Display only version information
+    s[tatus]         Display the charge level, limit & status (default).
+    p[ersist]        Persist the currently set charge limit (privileged).
+    c[lear]          Clear persistence of the charge limit (privileged).
+    l[imit] <int>    Set the charge limit to <int> percent (privileged).
+    h[elp]           Display only this help text.
+    v[ersion]        Display only version information.
 ```
 
 ## About
@@ -42,16 +42,16 @@ You can also rename the binary to something else if another program with the sam
 bat
 
 # Set a battery charge limit in percentage points (requires privileges):
-sudo bat --limit 80
+sudo bat limit 80
 
 # Undo the battery charge limit (requires privileges):
-sudo bat --limit 100
+sudo bat limit 100
 
 # Persist the currently set charge limit after restart/hibernation/wake-up (requires privileges):
-sudo bat --persist
+sudo bat persist
 
 # Clear all persistence settings (requires privileges):
-sudo bat --clear
+sudo bat clear
 ```
 ## Requirements
 * **Linux kernel version later than 5.4-rc1** which is the [earliest version to expose the battery charge limit variable](https://github.com/torvalds/linux/commit/7973353e92ee1e7ca3b2eb361a4b7cb66c92abee).

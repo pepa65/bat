@@ -281,12 +281,12 @@ func TestThreshold(t *testing.T) {
 		err  error
 		want string
 	}{
-		{[]string{"bat", "--limit", "80"}, success, nil, msgThresholdSet},
-		{[]string{"bat", "--limit", "80", "extraneous_arg"}, failure, nil, msgExpectedSingleArg},
-		{[]string{"bat", "--limit", "80.0"}, failure, nil, msgArgNotInt},
-		{[]string{"bat", "--limit", "101"}, failure, nil, msgOutOfRangeThresholdVal},
-		{[]string{"bat", "--limit", "80"}, failure, power.ErrNotFound, msgIncompatible},
-		{[]string{"bat", "--limit", "80"}, failure, &fs.PathError{Err: syscall.EACCES}, msgPermissionDenied},
+		{[]string{"bat", "limit", "80"}, success, nil, msgThresholdSet},
+		{[]string{"bat", "limit", "80", "extraneous_arg"}, failure, nil, msgExpectedSingleArg},
+		{[]string{"bat", "limit", "80.0"}, failure, nil, msgArgNotInt},
+		{[]string{"bat", "limit", "101"}, failure, nil, msgOutOfRangeThresholdVal},
+		{[]string{"bat", "limit", "80"}, failure, power.ErrNotFound, msgIncompatible},
+		{[]string{"bat", "limit", "80"}, failure, &fs.PathError{Err: syscall.EACCES}, msgPermissionDenied},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("app.limit() = %q", test.want), func(t *testing.T) {

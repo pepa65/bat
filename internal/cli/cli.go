@@ -311,17 +311,17 @@ func Run() {
 	}
 	switch command := os.Args[1]; command {
 	// Generic program information.
-	case "-h", "--help":
+	case "h", "help", "-h", "--help":
 		app.help()
-	case "-V", "-v", "--version":
+	case "V", "v", "version", "-V", "-v", "--version":
 		app.version()
-	case "-s", "--status":
+	case "s", "status", "-s", "--status":
 		app.status()
-	case "-p", "--persist":
+	case "p", "persist", "-p", "--persist":
 		app.persist()
-	case "-c", "--clear":
+	case "c", "clear", "-c", "--clear":
 		app.reset()
-	case "-l", "--limit":
+	case "l", "limit", "-l", "--limit":
 		app.limit(os.Args)
 	default:
 		app.errorf(msgNoOption, command)
