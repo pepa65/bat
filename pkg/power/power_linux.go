@@ -11,7 +11,8 @@ import (
 // Variable represents a /sys/class/power_supply/ device variable.
 type Variable uint8
 
-const ( // Entries of /sys/class/power_supply/
+// Entries of /sys/class/power_supply/
+const (
 	Capacity Variable = iota + 1
 	Status
 	Threshold

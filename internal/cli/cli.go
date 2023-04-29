@@ -3,7 +3,7 @@ package cli
 
 import (
 	"bytes"
-	_ "embed"
+	_ "embed" // Allow embed
 	"errors"
 	"fmt"
 	"io"

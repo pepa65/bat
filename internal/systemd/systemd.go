@@ -3,7 +3,7 @@ package systemd
 
 import (
 	"bytes"
-	_ "embed"
+	_ "embed" // Allow embed
 	"errors"
 	"os"
 	"os/exec"
