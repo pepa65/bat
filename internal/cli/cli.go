@@ -1,4 +1,4 @@
-// Package cli handles the command line user interface for bat.
+// cli - Command line user interface
 package cli
 
 import (
@@ -18,8 +18,8 @@ import (
 	"text/template"
 	"time"
 
-	"tshaka.dev/x/bat/internal/systemd"
-	"tshaka.dev/x/bat/pkg/power"
+	"github.com/pepa65/bat/internal/systemd"
+	"github.com/pepa65/bat/pkg/power"
 )
 
 const (
@@ -28,25 +28,25 @@ const (
 )
 
 const (
-	msgArgNotInt              = "Argument should be an integer."
-	msgBashNotFound           = "Could not find Bash on your system."
-	msgExpectedSingleArg      = "Expects a single argument."
-	msgIncompatible           = "This program is most likely not compatible with your system. See\nhttps://github.com/tshakalekholoane/bat#disclaimer for details."
-	msgIncompatibleKernel     = "Requires Linux kernel version 5.4 or later."
-	msgIncompatibleSystemd    = "Requires systemd version 243-rc1 or later."
-	msgNoOption               = "There is no %s option. Run `bat --help` to see a list of available options.\n"
-	msgOutOfRangeThresholdVal = "Number should be between 1 and 100."
-	msgPermissionDenied       = "Permission denied. Try running this command using sudo."
-	msgPersistenceEnabled     = "Persistence of the current charging threshold enabled."
-	msgPersistenceReset       = "Charging threshold persistence reset."
-	msgThresholdSet           = "Charging threshold set.\nRun `sudo bat persist` to persist the setting between restarts."
+	msgArgNotInt              = "Argument must be an integer."
+	msgExpectedSingleArg      = "Single argument needed."
+	msgIncompatible           = `This program is most likely not compatible with your system. See
+https://github.com/pepa65/bat#disclaimer for details.`
+	msgIncompatibleKernel     = "Linux kernel version 5.4 or later required."
+	msgIncompatibleSystemd    = "Package systemd version 243-rc1 or later required."
+	msgNoOption               = "Option %s not implemented. Run `bat --help` to see the available options.\n"
+	msgOutOfRangeThresholdVal = "Percentage must be between 1 and 100."
+	msgPermissionDenied       = "Permission denied. Try running this command using 'sudo'."
+	msgPersistenceEnabled     = "Persistence of the currently set charge limit enabled."
+	msgPersistenceReset       = "Charge limit persistence cleared."
+	msgThresholdSet           = "Charge limit set.\nRun 'sudo bat --persist' to keep it after restart/hibernation/sleep."
 )
 
 // tag is the version information evaluated at compile time.
 var tag string
 
 var (
-	//go:embed help.txt
+	//go:embed help.tmpl
 	help string
 	//go:embed version.tmpl
 	version string
@@ -76,11 +76,10 @@ type app struct {
 	pager string
 	// get is the function used to read the value of the battery variable.
 	get func(power.Variable) (string, error)
-	// set is the function used to write the battery charging threshold
-	// value.
+	// set is the function used to write the battery charge limit value.
 	set func(power.Variable, string) error
 	// systemder is used to write and delete systemd services that persist
-	// the charging threshold between restarts.
+	// the charge limit after restart/hibernate/sleep.
 	systemder resetwriter
 }
 
@@ -93,7 +92,9 @@ func (a *app) errorf(format string, v ...any) {
 
 // errorln formats using the default format for its operands, appends a
 // new line, writes to standard error, and exits with error code 1.
-func (a *app) errorln(v ...any) { a.errorf("%v\n", v...) }
+func (a *app) errorln(v ...any) {
+	a.errorf("%v\n", v...)
+}
 
 // writef formats according to a format specifier, prints to standard
 // input.
@@ -103,7 +104,9 @@ func (a *app) writef(format string, v ...any) {
 
 // writeln formats using the default format for its operands, appends a
 // new line, and writes to standard input.
-func (a *app) writeln(v ...any) { a.writef("%v\n", v...) }
+func (a *app) writeln(v ...any) {
+	a.writef("%v\n", v...)
+}
 
 // page filters the string doc through the less pager.
 func (a *app) page(doc string) {
@@ -136,12 +139,21 @@ func (a *app) show(v power.Variable) {
 	a.writeln(val)
 }
 
-func (a *app) help() { a.page(help) }
+func (a *app) help() {
+	buf := new(bytes.Buffer)
+	buf.Grow(1024 /* should be good for a while */)
+	tmpl := template.Must(template.New("help").Parse(help))
+	tmpl.Execute(buf, struct {
+		Tag string
+	}{
+		tag,
+	})
+	a.page(buf.String())
+}
 
 func (a *app) version() {
 	buf := new(bytes.Buffer)
 	buf.Grow(96 /* max buffer len when branch is dirty is ≈ 84 */)
-
 	tmpl := template.Must(template.New("version").Parse(version))
 	tmpl.Execute(buf, struct {
 		Tag  string
@@ -150,18 +162,12 @@ func (a *app) version() {
 		tag,
 		time.Now().Year(),
 	})
-
 	a.page(buf.String())
 }
-
-func (a *app) capacity() { a.show(power.Capacity) }
 
 func (a *app) persist() {
 	if err := a.systemder.Write(); err != nil {
 		switch {
-		case errors.Is(err, systemd.ErrBashNotFound):
-			a.errorln(msgBashNotFound)
-			return
 		case errors.Is(err, systemd.ErrIncompatSystemd):
 			a.errorln(msgIncompatibleSystemd)
 			return
@@ -189,10 +195,18 @@ func (a *app) reset() {
 	a.writeln(msgPersistenceReset)
 }
 
-func (a *app) status() { a.show(power.Status) }
+func (a *app) status() {
+	a.writef("%s", "level: ")
+	a.show(power.Capacity)
+	a.writef("%s", "limit: ")
+	a.show(power.Threshold)
+	a.show(power.Status)
+}
 
-// valid returns true if threshold is in the range 1..=100.
-func valid(threshold int) bool { return threshold >= 1 && threshold <= 100 }
+// valid returns true if limit is in the range 1-100.
+func valid(limit int) bool {
+	return limit >= 1 && limit <= 100
+}
 
 // kernel returns the Linux kernel version as a string and an error
 // otherwise.
@@ -207,8 +221,8 @@ func kernel() (string, error) {
 
 // isRequiredKernel returns true if the string ver represents a
 // semantic version later than 5.4 and false otherwise (this is the
-// earliest version of the Linux kernel to expose the battery charging
-// threshold variable). It also returns an error if it failed parse the
+// earliest version of the Linux kernel to expose the battery charge
+// limit variable). It also returns an error if it failed parse the
 // string.
 func requiredKernel(ver string) (bool, error) {
 	re := regexp.MustCompile(`\d+\.\d+`)
@@ -225,65 +239,57 @@ func requiredKernel(ver string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
 	if maj > 5 /* 🤷 */ || (maj == 5 && min >= 4) {
 		return true, nil
 	}
 	return false, nil
 }
 
-func (a *app) threshold(args []string) {
-	switch {
-	case len(args) > 3:
+func (a *app) limit(args []string) {
+	if len(args) != 3 {
 		a.errorln(msgExpectedSingleArg)
 		return
-	case len(args) == 3:
-		val := args[2]
-		t, err := strconv.Atoi(val)
-		if err != nil {
-			if errors.Is(err, strconv.ErrSyntax) {
-				a.errorln(msgArgNotInt)
-				return
-			}
-			log.Fatal(err)
-		}
-
-		if !valid(t) {
-			a.errorln(msgOutOfRangeThresholdVal)
-			return
-		}
-
-		ver, err := kernel()
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-		ok, err := requiredKernel(ver)
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-		if !ok {
-			a.errorln(msgIncompatibleKernel)
-			return
-		}
-
-		if err := a.set(power.Threshold, strings.TrimSpace(val)); err != nil {
-			switch {
-			case errors.Is(err, power.ErrNotFound):
-				a.errorln(msgIncompatible)
-				return
-			case errors.Is(err, syscall.EACCES):
-				a.errorln(msgPermissionDenied)
-				return
-			default:
-				log.Fatal(err)
-			}
-		}
-		a.writeln(msgThresholdSet)
-	default:
-		a.show(power.Threshold)
 	}
+	val := args[2]
+	t, err := strconv.Atoi(val)
+	if err != nil {
+		if errors.Is(err, strconv.ErrSyntax) {
+			a.errorln(msgArgNotInt)
+			return
+		}
+		log.Fatal(err)
+	}
+	if !valid(t) {
+		a.errorln(msgOutOfRangeThresholdVal)
+		return
+	}
+	ver, err := kernel()
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	ok, err := requiredKernel(ver)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	if !ok {
+		a.errorln(msgIncompatibleKernel)
+		return
+	}
+	if err := a.set(power.Threshold, strings.TrimSpace(val)); err != nil {
+		switch {
+		case errors.Is(err, power.ErrNotFound):
+			a.errorln(msgIncompatible)
+			return
+		case errors.Is(err, syscall.EACCES):
+			a.errorln(msgPermissionDenied)
+			return
+		default:
+			log.Fatal(err)
+		}
+	}
+	a.writeln(msgThresholdSet)
 }
 
 // Run executes the application.
@@ -299,28 +305,24 @@ func Run() {
 		set:       power.Set,
 		systemder: systemd.New(),
 	}
-
 	if len(os.Args) == 1 {
-		app.help()
+		app.status()
+		return
 	}
-
 	switch command := os.Args[1]; command {
 	// Generic program information.
 	case "-h", "--help":
 		app.help()
-	case "-v", "--version":
+	case "-V", "-v", "--version":
 		app.version()
-	// Subcommands.
-	case "capacity":
-		app.capacity()
-	case "persist":
-		app.persist()
-	case "reset":
-		app.reset()
-	case "status":
+	case "-s", "--status":
 		app.status()
-	case "threshold":
-		app.threshold(os.Args)
+	case "-p", "--persist":
+		app.persist()
+	case "-c", "--clear":
+		app.reset()
+	case "-l", "--limit":
+		app.limit(os.Args)
 	default:
 		app.errorf(msgNoOption, command)
 	}

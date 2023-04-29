@@ -1,5 +1,4 @@
-// Package power contains functions to read and write
-// /sys/class/power_supply/ device variables.
+// power - I/O for /sys/class/power_supply
 package power
 
 import (
@@ -45,11 +44,9 @@ func find(v Variable) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	if len(matches) == 0 {
 		return "", ErrNotFound
 	}
-
 	return matches[0], nil
 }
 
@@ -60,7 +57,6 @@ func Get(v Variable) (string, error) {
 	if err != nil {
 		return "", nil
 	}
-
 	contents, err := os.ReadFile(p)
 	if err != nil {
 		return "", err
@@ -75,13 +71,11 @@ func Set(v Variable, val string) error {
 	if err != nil {
 		return err
 	}
-
 	f, err := os.Create(p)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-
 	_, err = f.WriteString(val)
 	return err
 }

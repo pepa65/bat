@@ -1,6 +1,8 @@
-// Binary bat is a battery management utility for Linux laptops.
+// bat - Battery management utility for Linux
 package main
 
-import "tshaka.dev/x/bat/internal/cli"
+import "github.com/pepa65/bat/internal/cli"
 
-func main() { cli.Run() }
+func main() {
+	cli.Run()
+}

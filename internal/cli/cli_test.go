@@ -11,15 +11,17 @@ import (
 	"time"
 
 	"gotest.tools/v3/assert"
-	"tshaka.dev/x/bat/internal/systemd"
-	"tshaka.dev/x/bat/pkg/power"
+	"github.com/pepa65/bat/internal/systemd"
+	"github.com/pepa65/bat/pkg/power"
 )
 
 // status spies on the exit function to ensure the correct exit code is
 // returned.
 type status struct{ code int }
 
-func (s *status) set(code int) { s.code = code }
+func (s *status) set(code int) {
+	s.code = code
+}
 
 // get mocks the power.Get function.
 func get(v power.Variable) (string, error) {
@@ -40,15 +42,22 @@ func get(v power.Variable) (string, error) {
 // function for testing.
 type setter struct{ err error }
 
-func (s *setter) set(v power.Variable, val string) error { return s.err }
+func (s *setter) set(v power.Variable, val string) error {
+	return s.err
+}
 
 // testSystemd mocks systemd.Systemd by implementing resetwriter. It
 // takes an err field that can be used to simulate errors from the
 // actual methods for testing.
 type testSystemd struct{ err error }
 
-func (ts testSystemd) Reset() error { return ts.err }
-func (ts testSystemd) Write() error { return ts.err }
+func (ts testSystemd) Reset() error {
+	return ts.err
+}
+
+func (ts testSystemd) Write() error {
+	return ts.err
+}
 
 func TestIsRequiredKernel(t *testing.T) {
 	tests := [...]struct {
@@ -67,12 +76,10 @@ func TestIsRequiredKernel(t *testing.T) {
 		{"5.4-rc5", true},
 		{"5.15.0-2-amd64", true},
 	}
-
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("requiredKernel(%q)", test.input), func(t *testing.T) {
 			got, err := requiredKernel(test.input)
 			assert.NilError(t, err, "parse version string: %s", test.input)
-
 			assert.Equal(t, got, test.want)
 		})
 	}
@@ -90,7 +97,6 @@ func TestInvalid(t *testing.T) {
 		{100, true},
 		{101, false},
 	}
-
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("valid(%d)", test.input), func(t *testing.T) {
 			got := valid(test.input)
@@ -108,24 +114,18 @@ func TestHelp(t *testing.T) {
 		},
 		pager: "less",
 	}
-
-	t.Run("app.help() == help.txt", func(t *testing.T) {
+	t.Run("app.help() == help.tmpl", func(t *testing.T) {
 		app.help()
-
 		got := app.console.out.(*bytes.Buffer).String()
 		want := help
-
 		assert.Equal(t, got, want)
 		assert.Equal(t, status.code, success, "exit status = %d, want %d", status.code, success)
 	})
-
-	t.Run("app.help() != help.txt", func(t *testing.T) {
+	t.Run("app.help() != help.tmpl", func(t *testing.T) {
 		app.help()
-
 		got := app.console.out.(*bytes.Buffer).String()
 		want := help[1:]
-
-		assert.Assert(t, got != want, "cli.page(help) output == help.txt")
+		assert.Assert(t, got != want, "cli.page(help) output == help.tmpl")
 		assert.Equal(t, status.code, success, "exit status = %d, want %d", status.code, success)
 	})
 }
@@ -143,11 +143,9 @@ func TestVersion(t *testing.T) {
 	t.Run("app.version() == version.tmpl", func(t *testing.T) {
 		app.version()
 		got := app.console.out.(*bytes.Buffer)
-
 		cmd := exec.Command("git", "describe", "--always", "--dirty", "--tags", "--long")
 		out, err := cmd.Output()
 		assert.NilError(t, err)
-
 		want := new(bytes.Buffer)
 		tmpl := template.Must(template.New("version").Parse(version))
 		tmpl.Execute(want, struct {
@@ -157,7 +155,6 @@ func TestVersion(t *testing.T) {
 			string(bytes.TrimSpace(out)),
 			time.Now().Year(),
 		})
-
 		assert.Assert(t, bytes.Contains(want.Bytes(), got.Bytes()))
 		assert.Equal(t, status.code, success, "exit status = %d, want %d", status.code, success)
 	})
@@ -172,28 +169,21 @@ func TestShow(t *testing.T) {
 		},
 		get: get,
 	}
-
 	tests := [...]struct {
 		name string
 		fn   func()
 		want string
 		code int
 	}{
-		{"app.capacity()", app.capacity, "79\n", success},
-		{"app.status()", app.status, "Not charging\n", success},
+		{"app.status()", app.status, "level: 79\nlimit: 80\nNot charging\n", success},
 	}
-
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%s = %q", test.name, test.want), func(t *testing.T) {
 			test.fn()
-
 			assert.Equal(t, status.code, test.code, "exit status = %d, want %d", status.code, test.code)
-
 			buf := app.console.out.(*bytes.Buffer)
-
 			got := buf.String()
 			assert.Equal(t, got, test.want)
-
 			buf.Reset()
 		})
 	}
@@ -208,39 +198,30 @@ func TestPersist(t *testing.T) {
 			quit: status.set,
 		},
 	}
-
 	tests := [...]struct {
 		err  error
 		msg  string
 		code int
 	}{
 		{nil, msgPersistenceEnabled, success},
-		{systemd.ErrBashNotFound, msgBashNotFound, failure},
 		{systemd.ErrIncompatSystemd, msgIncompatibleSystemd, failure},
 		{power.ErrNotFound, msgIncompatible, failure},
 		{&fs.PathError{Err: syscall.EACCES}, msgPermissionDenied, failure},
 	}
-
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("app.persist() = %q", test.msg), func(t *testing.T) {
 			app.systemder = &testSystemd{test.err}
-
 			app.persist()
-
 			assert.Equal(t, status.code, test.code, "exit status = %d, want %d", status.code, test.code)
-
 			var buf *bytes.Buffer
 			if status.code == success {
 				buf = app.console.out.(*bytes.Buffer)
 			} else {
 				buf = app.console.err.(*bytes.Buffer)
 			}
-
 			got := buf.String()
 			want := test.msg + "\n"
-
 			assert.Equal(t, got, want)
-
 			buf.Reset()
 		})
 	}
@@ -255,7 +236,6 @@ func TestReset(t *testing.T) {
 			quit: status.set,
 		},
 	}
-
 	tests := [...]struct {
 		err  error
 		msg  string
@@ -268,23 +248,17 @@ func TestReset(t *testing.T) {
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("app.reset() = %q", test.msg), func(t *testing.T) {
 			app.systemder = &testSystemd{test.err}
-
 			app.reset()
-
 			assert.Equal(t, status.code, test.code, "exit status = %d, want %d", status.code, test.code)
-
 			var buf *bytes.Buffer
 			if status.code == success {
 				buf = app.console.out.(*bytes.Buffer)
 			} else {
 				buf = app.console.err.(*bytes.Buffer)
 			}
-
 			got := buf.String()
 			want := test.msg + "\n"
-
 			assert.Equal(t, got, want)
-
 			buf.Reset()
 		})
 	}
@@ -299,28 +273,24 @@ func TestThreshold(t *testing.T) {
 			quit: status.set,
 		},
 	}
-
 	tests := [...]struct {
 		args []string
 		code int
 		err  error
 		want string
 	}{
-		{[]string{"bat", "threshold", "80"}, success, nil, msgThresholdSet},
-		{[]string{"bat", "threshold", "80", "extraneous_arg"}, failure, nil, msgExpectedSingleArg},
-		{[]string{"bat", "threshold", "80.0"}, failure, nil, msgArgNotInt},
-		{[]string{"bat", "threshold", "101"}, failure, nil, msgOutOfRangeThresholdVal},
-		{[]string{"bat", "threshold", "80"}, failure, power.ErrNotFound, msgIncompatible},
-		{[]string{"bat", "threshold", "80"}, failure, &fs.PathError{Err: syscall.EACCES}, msgPermissionDenied},
+		{[]string{"bat", "--limit", "80"}, success, nil, msgThresholdSet},
+		{[]string{"bat", "--limit", "80", "extraneous_arg"}, failure, nil, msgExpectedSingleArg},
+		{[]string{"bat", "--limit", "80.0"}, failure, nil, msgArgNotInt},
+		{[]string{"bat", "--limit", "101"}, failure, nil, msgOutOfRangeThresholdVal},
+		{[]string{"bat", "--limit", "80"}, failure, power.ErrNotFound, msgIncompatible},
+		{[]string{"bat", "--limit", "80"}, failure, &fs.PathError{Err: syscall.EACCES}, msgPermissionDenied},
 	}
-
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("app.threshold() = %q", test.want), func(t *testing.T) {
+		t.Run(fmt.Sprintf("app.limit() = %q", test.want), func(t *testing.T) {
 			ts := setter{test.err}
 			app.set = ts.set
-
-			app.threshold(test.args)
-
+			app.limit(test.args)
 			assert.Equal(t, status.code, test.code, "exit status = %d, want %d", status.code, test.code)
 
 			var buf *bytes.Buffer
@@ -329,12 +299,9 @@ func TestThreshold(t *testing.T) {
 			} else {
 				buf = app.console.err.(*bytes.Buffer)
 			}
-
 			got := buf.String()
 			want := test.want + "\n"
-
 			assert.Equal(t, got, want)
-
 			buf.Reset()
 		})
 	}
