@@ -2,6 +2,7 @@
 
 **Battery charge limit management for Linux**
 
+```
 Usage:  bat [<option>]
   Options:
     -s/--status (default)    Display the charge level, status and charge limit
@@ -53,6 +54,7 @@ sudo bat --persist
 sudo bat --clear
 ```
 ## Requirements
-* `Linux kernel version later than 5.4-rc1` which is the [earliest version to expose the battery charge limit variable](https://github.com/torvalds/linux/commit/7973353e92ee1e7ca3b2eb361a4b7cb66c92abee).
-* To persist the battery charge limit setting after restart/hibernation/wake-up, the application relies on **[systemd](https://systemd.io/) version 245 or later**.
-* The persist script needs **[Bash](https://www.gnu.org/software/bash/)** (bundled with most Linux distributions).
+* **Linux kernel version later than 5.4-rc1** which is the [earliest version to expose the battery charge limit variable](https://github.com/torvalds/linux/commit/7973353e92ee1e7ca3b2eb361a4b7cb66c92abee).
+* To persist the battery charge limit setting after restart/hibernation/wake-up, the application relies on **[systemd](https://systemd.io/) version 245 or later** (bundled with most Linux distributions).
+* To output help or version to a too-small screen, **less** is used as a pager.
+
