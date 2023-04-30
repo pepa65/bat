@@ -29,10 +29,10 @@ install:
 	GOOS=linux GOARCH=amd64 go build -ldflags=${ldflags} ./cmd/bat/
 	-sudo mv bat /usr/local/bin/
 
-## clean: Delete build artefacts
+## clean: Delete build artifacts
 .PHONY: clean
 clean:
-	@echo "Deleting build artefacts:"
+	@echo "Deleting build artifacts:"
 	-rm -f bat cover.out
 
 ## test: Run tests
