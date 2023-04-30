@@ -16,10 +16,6 @@ import (
 )
 
 var (
-	// ErrBashNotFound indicates the absence of the Bash shell in the
-	// user's $PATH. This is the shell program that is used to execute
-	// commands to set the threshold after restarts.
-	ErrBashNotFound = errors.New("systemd: Bash not found")
 	// ErrIncompatSystemd indicates an incompatible version of systemd.
 	ErrIncompatSystemd = errors.New("systemd: incompatible systemd version")
 )
@@ -101,7 +97,7 @@ func process(cfgs []config, fn func(cfg config, in chan<- error)) error {
 func (s *Systemd) remove(cfgs []config) error {
 	return process(cfgs, func(cfg config, in chan<- error) {
 		name := s.dir + "bat-" + cfg.Event + ".service"
-		if err := os.Remove(name); err != nil && errors.Is(err, syscall.ENOENT) {
+		if err := os.Remove(name); err != nil && !errors.Is(err, syscall.ENOENT) {
 			in <- err
 			return
 		}
@@ -160,6 +156,54 @@ func (s *Systemd) enable(cfgs []config) error {
 	})
 }
 
+func (s *Systemd) present(cfgs []config) error {
+	return process(cfgs, func(cfg config, in chan<- error) {
+		name := "bat-" + cfg.Event + ".service"
+		output, err := exec.Command("systemctl", "list-unit-files", "-q", name).Output()
+		if err != nil || string(output) == "" {
+			in <- err
+			return
+		}
+		in <- nil
+	})
+}
+
+func (s *Systemd) enabled(cfgs []config) error {
+	return process(cfgs, func(cfg config, in chan<- error) {
+		name := "bat-" + cfg.Event + ".service"
+		output, err := exec.Command("systemctl", "is-enabled", name).Output()
+		if err != nil || string(output) != "enabled" {
+			in <- err
+			return
+		}
+		in <- nil
+	})
+}
+
+// Present checks if all systemd services are installed.
+func (s *Systemd) Present() error {
+	cfgs, err := configs()
+	if err != nil {
+		return err
+	}
+	if err := s.present(cfgs); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Enabled checks if all systemd services are enabled.
+func (s *Systemd) Enabled() error {
+	cfgs, err := configs()
+	if err != nil {
+		return err
+	}
+	if err := s.enabled(cfgs); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Reset removes and disables all systemd services created by the
 // application.
 func (s *Systemd) Reset() error {
@@ -187,6 +231,22 @@ func (s *Systemd) Write() error {
 		return err
 	}
 	if err := s.enable(cfgs); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Disable creates all the systemd services required to persist the
+// charge limit after restart/hibernation/sleep and disables them.
+func (s *Systemd) Disable() error {
+	cfgs, err := configs()
+	if err != nil {
+		return err
+	}
+	if err := s.write(cfgs); err != nil {
+		return err
+	}
+	if err := s.disable(cfgs); err != nil {
 		return err
 	}
 	return nil

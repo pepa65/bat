@@ -28,6 +28,8 @@ const (
 )
 
 const (
+	msgTrue                   = "yes"
+	msgFalse                  = "no"
 	msgArgNotInt              = "Argument must be an integer."
 	msgExpectedSingleArg      = "Single argument needed."
 	msgIncompatibleKernel     = "Linux kernel version 5.4 or later required."
@@ -35,9 +37,10 @@ const (
 	msgNoOption               = "Option %s not implemented. Run `bat help` to see the available options.\n"
 	msgOutOfRangeThresholdVal = "Percentage must be between 1 and 100."
 	msgPermissionDenied       = "Permission denied. Try running this command using 'sudo'."
-	msgPersistenceEnabled     = "Persistence of the currently set charge limit enabled."
-	msgPersistenceReset       = "Charge limit persist config cleared."
-	msgThresholdSet           = "Charge limit set.\nRun 'sudo bat persist' to keep it after restart/hibernation/sleep."
+	msgPersistenceEnabled     = "Persist systemd units present and enabled."
+	msgPersistenceRemoved     = "Persist systemd units no longer present."
+	msgPersistenceDisabled    = "Persist systemd unit present but disabled."
+	msgLimitSet               = "Charge limit set.\nRun 'sudo bat persist' to keep it after restart/hibernation/sleep."
 	msgIncompatible           = `This program is most likely not compatible with your system. See
 https://github.com/pepa65/bat#disclaimer for details.`
 )
@@ -52,11 +55,13 @@ var (
 	version string
 )
 
-// resetwriter is the interface that groups the Reset and Write methods
-// used to write and remove systemd services.
+// resetwriter is the interface that groups the methods to access systemd services.
 type resetwriter interface {
 	Reset() error
 	Write() error
+	Disable() error
+	Present() error
+	Enabled() error
 }
 
 // console represents a text terminal user interface.
@@ -192,7 +197,7 @@ func (a *app) persist() {
 	a.writeln(msgPersistenceEnabled)
 }
 
-func (a *app) reset() {
+func (a *app) remove() {
 	if err := a.systemder.Reset(); err != nil {
 		if errors.Is(err, syscall.EACCES) {
 			a.errorln(msgPermissionDenied)
@@ -200,15 +205,46 @@ func (a *app) reset() {
 		}
 		log.Fatal(err)
 	}
-	a.writeln(msgPersistenceReset)
+	a.writeln(msgPersistenceRemoved)
+}
+
+func (a *app) disable() {
+	if err := a.systemder.Disable(); err != nil {
+		if errors.Is(err, syscall.EACCES) {
+			a.errorln(msgPermissionDenied)
+			return
+		}
+		log.Fatal(err)
+	}
+	a.writeln(msgPersistenceDisabled)
+}
+
+func (a *app) enabled() {
+	if err := a.systemder.Enabled(); err != nil {
+		a.writeln(msgFalse)
+	} else {
+		a.writeln(msgTrue)
+	}
+}
+
+func (a *app) present() {
+	if err := a.systemder.Present(); err != nil {
+		a.writeln(msgFalse)
+	} else {
+		a.writeln(msgTrue)
+	}
 }
 
 func (a *app) status() {
-	a.writef("%s", "level: ")
+	a.writef("%s", "Level: ")
 	a.show(power.Capacity)
-	a.writef("%s", "limit: ")
+	a.writef("%s", "Limit: ")
 	a.show(power.Threshold)
 	a.show(power.Status)
+	a.writef("%s", "Persist systemd units present: ")
+	a.present()
+	a.writef("%s", "Persist systemd units enabled: ")
+	a.enabled()
 }
 
 // valid returns true if limit is in the range 1-100.
@@ -297,7 +333,7 @@ func (a *app) limit(args []string) {
 			log.Fatal(err)
 		}
 	}
-	a.writeln(msgThresholdSet)
+	a.writeln(msgLimitSet)
 }
 
 // Run executes the application.
@@ -328,8 +364,10 @@ func Run() {
 		app.status()
 	case "p", "persist", "-p", "--persist":
 		app.persist()
-	case "c", "clear", "-c", "--clear":
-		app.reset()
+	case "r", "remove", "-r", "--remove":
+		app.remove()
+	case "d", "disable", "-d", "--disable":
+		app.disable()
 	case "l", "limit", "-l", "--limit":
 		app.limit(os.Args)
 	default:

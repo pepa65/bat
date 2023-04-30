@@ -1,10 +1,11 @@
 bat - Manage battery charge limit
 Usage:  bat <option>
   Options:
-    [s[tatus]]       Display the charge level, limit & status (default).
+    [s[tatus]]       Display charge level, limit & status and persist status.
     l[imit] <int>    Set the charge limit to <int> percent (privileged).
-    p[ersist]        Persist the currently set charge limit (privileged).
-    c[lear]          Clear persist config of the charge limit (privileged).
+    p[ersist]        Install and enable the persist systemd units (privileged).
+    r[emove]         Remove the persist systemd units (privileged).
+    d[isable]        Disable the persist systemd units (privileged).
     h[elp]           Display only this help text.
     v[ersion]        Display only version information.
 bat {{.Tag}} github.com/pepa65/bat
