@@ -10,4 +10,4 @@ building:
   artifacts:
     name: bat
     paths:
-     - batdir/bat
+     - bat
