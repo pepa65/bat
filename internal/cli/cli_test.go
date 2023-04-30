@@ -10,9 +10,9 @@ import (
 	"text/template"
 	"time"
 
-	"gotest.tools/v3/assert"
 	"github.com/pepa65/bat/internal/systemd"
 	"github.com/pepa65/bat/pkg/power"
+	"gotest.tools/v3/assert"
 )
 
 // status spies on the exit function to ensure the correct exit code is
