@@ -6,9 +6,8 @@ stages:
 building:
   stage: build
   script:
-    - go get -u github.com/pepa65/bat
-    - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w"
+    - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o batdir ./...
   artifacts:
     name: bat
     paths:
-     - bat
+     - batdir/bat
