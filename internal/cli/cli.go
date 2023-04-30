@@ -34,12 +34,12 @@ const (
 https://github.com/pepa65/bat#disclaimer for details.`
 	msgIncompatibleKernel     = "Linux kernel version 5.4 or later required."
 	msgIncompatibleSystemd    = "Package systemd version 243-rc1 or later required."
-	msgNoOption               = "Option %s not implemented. Run `bat --help` to see the available options.\n"
+	msgNoOption               = "Option %s not implemented. Run `bat help` to see the available options.\n"
 	msgOutOfRangeThresholdVal = "Percentage must be between 1 and 100."
 	msgPermissionDenied       = "Permission denied. Try running this command using 'sudo'."
 	msgPersistenceEnabled     = "Persistence of the currently set charge limit enabled."
-	msgPersistenceReset       = "Charge limit persistence cleared."
-	msgThresholdSet           = "Charge limit set.\nRun 'sudo bat --persist' to keep it after restart/hibernation/sleep."
+	msgPersistenceReset       = "Charge limit persist config cleared."
+	msgThresholdSet           = "Charge limit set.\nRun 'sudo bat persist' to keep it after restart/hibernation/sleep."
 )
 
 // tag is the version information evaluated at compile time.
