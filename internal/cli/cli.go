@@ -74,6 +74,8 @@ type app struct {
 	console *console
 	// pager is the path of the pager.
 	pager string
+	// cat is the path of cat for fallback.
+	cat string
 	// get is the function used to read the value of the battery variable.
 	get func(power.Variable) (string, error)
 	// set is the function used to write the battery charge limit value.
@@ -113,6 +115,7 @@ func (a *app) page(doc string) {
 	cmd := exec.Command(
 		a.pager,
 		"--no-init",
+		"--chop-long-lines",
 		"--quit-if-one-screen",
 		"--IGNORE-CASE",
 		"--RAW-CONTROL-CHARS",
@@ -120,7 +123,12 @@ func (a *app) page(doc string) {
 	cmd.Stdin = strings.NewReader(doc)
 	cmd.Stdout = a.console.out
 	if err := cmd.Run(); err != nil {
-		log.Fatal(err)
+		cmd := exec.Command(a.cat)
+		cmd.Stdin = strings.NewReader(doc)
+		cmd.Stdout = a.console.out
+		if err := cmd.Run(); err != nil {
+			log.Fatalln(err)
+		}
 	}
 	a.console.quit(success)
 }
@@ -301,6 +309,7 @@ func Run() {
 			quit: os.Exit,
 		},
 		pager:     "less",
+		cat:       "cat",
 		get:       power.Get,
 		set:       power.Set,
 		systemder: systemd.New(),

@@ -1,6 +1,11 @@
 # `bat`
-**Battery charge limit management**
+**Manage battery charge limit**
 
+* Repo: github.com/pepa65/bat
+* After: github.com/tshakalekholoane/bat
+* License: MIT
+* Required: Linux-5.4+ systemd-244+
+ 
 ```
 Usage:  bat <option>
   Options:
@@ -17,7 +22,7 @@ The goal is to replicate the functionality of the [ASUS Battery Health Charging]
 ## Requirements
 * **Linux kernel version later than 5.4-rc1** which is the [earliest version to expose the battery charge limit variable](https://github.com/torvalds/linux/commit/7973353e92ee1e7ca3b2eb361a4b7cb66c92abee).
 * To persist the battery charge limit setting after restart/hibernation/wake-up, the application relies on **[systemd](https://systemd.io/) version 244 or later** (bundled with most Linux distributions).
-* To output help or version to a too-small screen, **less** is used as a pager.
+* To output help or version to a too-small screen, **less** is optionally used as a pager.
 
 ## Disclaimer
 This has been reported to only work with some ASUS and [Lenovo ThinkPad](https://github.com/tshakalekholoane/bat/discussions/23) laptops. For Dell systems, see [smbios-utils](https://github.com/dell/libsmbios), particularly the `smbios-battery-ctl` command, or install it using your package manager. For other manufacturers there is also [TLP](https://linrunner.de/tlp/).
