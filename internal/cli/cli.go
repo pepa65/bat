@@ -3,7 +3,7 @@ package cli
 
 import (
 	"bytes"
-	_ "embed" // Allow embed
+	_ "embed" // Allow embedding version and help templates
 	"errors"
 	"fmt"
 	"io"
@@ -30,8 +30,6 @@ const (
 const (
 	msgArgNotInt              = "Argument must be an integer."
 	msgExpectedSingleArg      = "Single argument needed."
-	msgIncompatible           = `This program is most likely not compatible with your system. See
-https://github.com/pepa65/bat#disclaimer for details.`
 	msgIncompatibleKernel     = "Linux kernel version 5.4 or later required."
 	msgIncompatibleSystemd    = "Package systemd version 243-rc1 or later required."
 	msgNoOption               = "Option %s not implemented. Run `bat help` to see the available options.\n"
@@ -40,6 +38,8 @@ https://github.com/pepa65/bat#disclaimer for details.`
 	msgPersistenceEnabled     = "Persistence of the currently set charge limit enabled."
 	msgPersistenceReset       = "Charge limit persist config cleared."
 	msgThresholdSet           = "Charge limit set.\nRun 'sudo bat persist' to keep it after restart/hibernation/sleep."
+	msgIncompatible           = `This program is most likely not compatible with your system. See
+https://github.com/pepa65/bat#disclaimer for details.`
 )
 
 // tag is the version information evaluated at compile time.

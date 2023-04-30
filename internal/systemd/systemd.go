@@ -3,7 +3,7 @@ package systemd
 
 import (
 	"bytes"
-	_ "embed" // Allow embed
+	_ "embed" // Allow embedding systemd unit template
 	"errors"
 	"os"
 	"os/exec"
@@ -85,7 +85,7 @@ func New() *Systemd {
 
 // process runs the given function on the configurations in parallel and
 // returns an error if any one call resulted in a error.
-func process(cfgs []config, fn func(cfg config, in chan<- error)) error {
+func process(cfgs []config, fn func(cfg config, in chan <-error)) error {
 	errs := make(chan error, len(cfgs))
 	for _, cfg := range cfgs {
 		go fn(cfg, errs)
@@ -99,13 +99,13 @@ func process(cfgs []config, fn func(cfg config, in chan<- error)) error {
 }
 
 func (s *Systemd) remove(cfgs []config) error {
-	return process(cfgs, func(cfg config, in chan<- error) {
+	return process(cfgs, func(cfg config, in chan <-error) {
 		name := s.dir + "bat-" + cfg.Event + ".service"
 		if err := os.Remove(name); err != nil && errors.Is(err, syscall.ENOENT) {
-			in <- err
+			in <-err
 			return
 		}
-		in <- nil
+		in <-nil
 	})
 }
 
@@ -117,46 +117,46 @@ func (s *Systemd) write(cfgs []config) error {
 	if err != nil {
 		return err
 	}
-	return process(cfgs, func(cfg config, in chan<- error) {
+	return process(cfgs, func(cfg config, in chan <-error) {
 		name := s.dir + "bat-" + cfg.Event + ".service"
 		sf, err := os.Create(name)
 		if err != nil && !errors.Is(err, syscall.ENOENT) {
-			in <- err
+			in <-err
 			return
 		}
 		defer sf.Close()
 		if err := tmpl.Execute(sf, cfg); err != nil {
-			in <- err
+			in <-err
 			return
 		}
-		in <- nil
+		in <-nil
 	})
 }
 
 func (s *Systemd) disable(cfgs []config) error {
-	return process(cfgs, func(cfg config, in chan<- error) {
+	return process(cfgs, func(cfg config, in chan <-error) {
 		name := "bat-" + cfg.Event + ".service"
 		buf := new(bytes.Buffer)
 		cmd := exec.Command("systemctl", "disable", name)
 		cmd.Stderr = buf
 		if err := cmd.Run(); err != nil &&
 			!bytes.Contains(buf.Bytes(), []byte(name+" does not exist.")) {
-			in <- err
+			in <-err
 			return
 		}
-		in <- nil
+		in <-nil
 	})
 }
 
 func (s *Systemd) enable(cfgs []config) error {
-	return process(cfgs, func(cfg config, in chan<- error) {
+	return process(cfgs, func(cfg config, in chan <-error) {
 		name := "bat-" + cfg.Event + ".service"
 		cmd := exec.Command("systemctl", "enable", name)
 		if err := cmd.Run(); err != nil {
-			in <- err
+			in <-err
 			return
 		}
-		in <- nil
+		in <-nil
 	})
 }
 

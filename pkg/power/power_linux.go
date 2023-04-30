@@ -36,10 +36,12 @@ func (v Variable) String() string {
 // with multiple device manufacturers.
 const dir = "/sys/class/power_supply/BAT?/"
 
-// ErrNotFound indicates virtual file not found
-var ErrNotFound = errors.New("power: no battery virtual file found")
-// ErrMultipleFound indicates more than one virtual file found
-var ErrMultipleFound = errors.New("power: multiple battery virtual files found")
+var (
+	// ErrNotFound indicates virtual file not found
+	ErrNotFound = errors.New("power: no battery virtual file found")
+	// ErrMultipleFound indicates more than one virtual file found
+	ErrMultipleFound = errors.New("power: multiple battery virtual files found")
+)
 
 func find(v Variable) (string, error) {
 	matches, err := filepath.Glob(filepath.Join(dir, v.String()))

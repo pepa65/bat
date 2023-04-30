@@ -123,7 +123,7 @@ func TestHelp(t *testing.T) {
 		want := new(bytes.Buffer)
 		tmpl := template.Must(template.New("help").Parse(help))
 		tmpl.Execute(want, struct {
-			Tag  string
+			Tag string
 		}{
 			string(bytes.TrimSpace(out)),
 		})

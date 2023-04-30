@@ -10,40 +10,40 @@ help:
 ## audit: format, vet, and test code
 .PHONY: audit
 audit: test
-	#@echo "Formatting code."
+	#@echo "Formatting code:"
 	#gofumpt -w .
-	@echo "Vetting code."
+	@echo "Vetting code:"
 	go vet ./...
 	#staticcheck ./...
 
 ## build: build the cmd/bat application
 .PHONY: build
 build:
-	@echo "Building bat."
+	@echo "Building bat:"
 	GOOS=linux GOARCH=amd64 go build -ldflags=${ldflags} ./cmd/bat/
 
 ## install: install the cmd/bat application
 .PHONY: install
 install:
-	@echo "Building and installing bat."
+	@echo "Building and installing bat:"
 	GOOS=linux GOARCH=amd64 go build -ldflags=${ldflags} ./cmd/bat/
 	-sudo mv bat /usr/local/bin/
 
 ## clean: delete build artefacts
 .PHONY: clean
 clean:
-	@echo "Deleting build artefacts."
+	@echo "Deleting build artefacts:"
 	-rm -f bat cover.out
 
 ## test: runs tests
 .PHONY: test
 test:
-	@echo "Running tests."
+	@echo "Running tests:"
 	go test -v -race -vet=off -ldflags=${ldflags} ./...
 
 ## cover: shows application coverage in browser
 .PHONY: cover
 cover:
-	@echo "Running coverage."
+	@echo "Running coverage:"
 	go test -coverprofile=cover.out -ldflags=${ldflags} ./...
 	go tool cover -html=cover.out
