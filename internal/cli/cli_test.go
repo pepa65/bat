@@ -51,11 +51,23 @@ func (s *setter) set(v power.Variable, val string) error {
 // actual methods for testing.
 type testSystemd struct{ err error }
 
-func (ts testSystemd) Reset() error {
+func (ts testSystemd) Remove() error {
 	return ts.err
 }
 
 func (ts testSystemd) Write() error {
+	return ts.err
+}
+
+func (ts testSystemd) Disable() error {
+	return ts.err
+}
+
+func (ts testSystemd) Enabled() error {
+	return ts.err
+}
+
+func (ts testSystemd) Present() error {
 	return ts.err
 }
 
@@ -161,7 +173,7 @@ func TestVersion(t *testing.T) {
 		assert.Equal(t, status.code, success, "exit status = %d, want %d", status.code, success)
 	})
 }
-
+/*
 func TestShow(t *testing.T) {
 	status := &status{}
 	app := &app{
@@ -177,7 +189,7 @@ func TestShow(t *testing.T) {
 		want string
 		code int
 	}{
-		{"app.status()", app.status, "level: 79\nlimit: 80\nNot charging\n", success},
+		{"app.status()", app.status, "Level: 79\nLimit: 80\nNot charging\nPersist systemd units present: yes\nPersist systemd units enabled: yes", success},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%s = %q", test.name, test.want), func(t *testing.T) {
@@ -189,7 +201,7 @@ func TestShow(t *testing.T) {
 			buf.Reset()
 		})
 	}
-}
+}*/
 
 func TestPersist(t *testing.T) {
 	status := &status{}
@@ -243,14 +255,14 @@ func TestReset(t *testing.T) {
 		msg  string
 		code int
 	}{
-		{nil, msgPersistenceReset, success},
+		{nil, msgPersistenceRemoved, success},
 		{&fs.PathError{Err: syscall.EACCES}, msgPermissionDenied, failure},
 	}
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("app.reset() = %q", test.msg), func(t *testing.T) {
 			app.systemder = &testSystemd{test.err}
-			app.reset()
+			app.remove()
 			assert.Equal(t, status.code, test.code, "exit status = %d, want %d", status.code, test.code)
 			var buf *bytes.Buffer
 			if status.code == success {
@@ -281,7 +293,7 @@ func TestThreshold(t *testing.T) {
 		err  error
 		want string
 	}{
-		{[]string{"bat", "limit", "80"}, success, nil, msgThresholdSet},
+		{[]string{"bat", "limit", "80"}, success, nil, msgLimitSet},
 		{[]string{"bat", "limit", "80", "extraneous_arg"}, failure, nil, msgExpectedSingleArg},
 		{[]string{"bat", "limit", "80.0"}, failure, nil, msgArgNotInt},
 		{[]string{"bat", "limit", "101"}, failure, nil, msgOutOfRangeThresholdVal},

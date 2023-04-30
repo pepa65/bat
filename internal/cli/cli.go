@@ -57,7 +57,7 @@ var (
 
 // resetwriter is the interface that groups the methods to access systemd services.
 type resetwriter interface {
-	Reset() error
+	Remove() error
 	Write() error
 	Disable() error
 	Present() error
@@ -154,7 +154,7 @@ func (a *app) show(v power.Variable) {
 
 func (a *app) help() {
 	buf := new(bytes.Buffer)
-	buf.Grow(1024 /* should be good for a while */)
+	buf.Grow(1024)
 	tmpl := template.Must(template.New("help").Parse(help))
 	tmpl.Execute(buf, struct {
 		Tag string
@@ -166,7 +166,7 @@ func (a *app) help() {
 
 func (a *app) version() {
 	buf := new(bytes.Buffer)
-	buf.Grow(96 /* max buffer len when branch is dirty is ≈ 84 */)
+	buf.Grow(128)
 	tmpl := template.Must(template.New("version").Parse(version))
 	tmpl.Execute(buf, struct {
 		Tag  string
@@ -198,7 +198,7 @@ func (a *app) persist() {
 }
 
 func (a *app) remove() {
-	if err := a.systemder.Reset(); err != nil {
+	if err := a.systemder.Remove(); err != nil {
 		if errors.Is(err, syscall.EACCES) {
 			a.errorln(msgPermissionDenied)
 			return
@@ -283,7 +283,7 @@ func requiredKernel(ver string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if maj > 5 /* 🤷 */ || (maj == 5 && min >= 4) {
+	if maj > 5 || (maj == 5 && min >= 4) {
 		return true, nil
 	}
 	return false, nil

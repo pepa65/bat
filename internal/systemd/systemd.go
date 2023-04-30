@@ -15,10 +15,8 @@ import (
 	"github.com/pepa65/bat/pkg/power"
 )
 
-var (
-	// ErrIncompatSystemd indicates an incompatible version of systemd.
-	ErrIncompatSystemd = errors.New("systemd: incompatible systemd version")
-)
+// ErrIncompatSystemd indicates an incompatible version of systemd.
+var ErrIncompatSystemd = errors.New("systemd: incompatible systemd version")
 
 // unit is a template of a systemd unit file that encodes information
 // about the services used to persist the charge limit after restart/hibernation/sleep,
@@ -204,9 +202,9 @@ func (s *Systemd) Enabled() error {
 	return nil
 }
 
-// Reset removes and disables all systemd services created by the
+// Remove removes and disables all systemd services created by the
 // application.
-func (s *Systemd) Reset() error {
+func (s *Systemd) Remove() error {
 	cfgs, err := configs()
 	if err != nil {
 		return err
