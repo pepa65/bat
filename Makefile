@@ -34,16 +34,3 @@ install:
 clean:
 	@echo "Deleting build artifacts:"
 	-rm -f bat cover.out
-
-## test: Run tests
-.PHONY: test
-test:
-	@echo "Running tests:"
-	go test -v -race -vet=off -ldflags=${ldflags} ./...
-
-## cover: Show application coverage in browser
-.PHONY: cover
-cover:
-	@echo "Running coverage:"
-	go test -coverprofile=cover.out -ldflags=${ldflags} ./...
-	go tool cover -html=cover.out

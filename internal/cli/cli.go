@@ -248,8 +248,7 @@ func valid(limit int) bool {
 // otherwise.
 func kernel() (string, error) {
 	var name unix.Utsname
-	if err := unix.Uname(&name)
-	err != nil {
+	if err := unix.Uname(&name); err != nil {
 		return "", err
 	}
 	return string(name.Release[:]), nil
@@ -262,7 +261,7 @@ func kernel() (string, error) {
 // string.
 func requiredKernel(ver string) (bool, error) {
 	var maj, min int
-		_, err := fmt.Sscanf(ver, "%d.%d", &maj, &min)
+	_, err := fmt.Sscanf(ver, "%d.%d", &maj, &min)
 	if err != nil {
 		return false, err
 	}
