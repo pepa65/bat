@@ -8,10 +8,8 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math"
 	"os"
 	"os/exec"
-	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -20,6 +18,7 @@ import (
 
 	"github.com/pepa65/bat/internal/systemd"
 	"github.com/pepa65/bat/pkg/power"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -167,14 +166,7 @@ func (a *app) help() {
 func (a *app) version() {
 	buf := new(bytes.Buffer)
 	buf.Grow(128)
-	tmpl := template.Must(template.New("version").Parse(version))
-	tmpl.Execute(buf, struct {
-		Tag  string
-		Year int
-	}{
-		tag,
-		time.Now().Year(),
-	})
+	fmt.Fprintf(buf, version, tag, time.Now().Year())
 	a.page(buf.String())
 }
 
@@ -255,12 +247,12 @@ func valid(limit int) bool {
 // kernel returns the Linux kernel version as a string and an error
 // otherwise.
 func kernel() (string, error) {
-	cmd := exec.Command("uname", "--kernel-release")
-	out, err := cmd.Output()
-	if err != nil {
+	var name unix.Utsname
+	if err := unix.Uname(&name)
+	err != nil {
 		return "", err
 	}
-	return string(out), nil
+	return string(name.Release[:]), nil
 }
 
 // isRequiredKernel returns true if the string ver represents a
@@ -269,17 +261,8 @@ func kernel() (string, error) {
 // limit variable). It also returns an error if it failed parse the
 // string.
 func requiredKernel(ver string) (bool, error) {
-	re := regexp.MustCompile(`\d+\.\d+`)
-	ver = re.FindString(ver)
-	maj, min, err := func(ver string) (int, int, error) {
-		f, err := strconv.ParseFloat(strings.TrimSpace(ver), 64)
-		if err != nil {
-			return 0, 0, err
-		}
-		maj := int(f)
-		min := (f - float64(maj)) * math.Pow10(len(strings.Split(ver, ".")[1]))
-		return maj, int(min), nil
-	}(ver)
+	var maj, min int
+		_, err := fmt.Sscanf(ver, "%d.%d", &maj, &min)
 	if err != nil {
 		return false, err
 	}
