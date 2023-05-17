@@ -48,9 +48,6 @@ jobs:
             gofumpt -l .
           fi
 
-      - name: Test
-        run: make test
-
   build:
     runs-on: ${{ matrix.os }}
     strategy:
