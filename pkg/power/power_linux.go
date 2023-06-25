@@ -16,6 +16,8 @@ const (
 	Capacity Variable = iota + 1
 	Status
 	Threshold
+	ChargeFull
+	ChargeFullDesign
 )
 
 func (v Variable) String() string {
@@ -26,6 +28,10 @@ func (v Variable) String() string {
 		return "status"
 	case Threshold:
 		return "charge_control_end_threshold"
+	case ChargeFull:
+		return "charge_full"
+	case ChargeFullDesign:
+		return "charge_full_design"
 	default:
 		return "unrecognised"
 	}

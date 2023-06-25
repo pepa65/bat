@@ -11,12 +11,12 @@
  
 ```
 Usage:  bat <option>
-  Options:
-    [s[tatus]]       Display charge level, limit & status and persist status.
-    l[imit] <int>    Set the charge limit to <int> percent (privileged).
-    p[ersist]        Install and enable the persist systemd units (privileged).
-    r[emove]         Remove the persist systemd units (privileged).
-    d[isable]        Disable the persist systemd units (privileged).
+  Options  ([^] needs root privileges):
+    [s[tatus]]       Display charge level, limit, health & (persist).
+    l[imit] <int>    Set the charge limit to <int> percent [^].
+    p[ersist]        Install and enable the persist systemd units [^].
+    r[emove]         Remove the persist systemd units [^].
+    d[isable]        Disable the persist systemd units [^].
     h[elp]           Display only this help text.
     v[ersion]        Display only version information.
 ```

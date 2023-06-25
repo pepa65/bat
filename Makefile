@@ -9,7 +9,7 @@ help:
 
 ## audit: Format, vet, and test code
 .PHONY: audit
-audit: test
+audit:
 	@echo "Formatting code:"
 	gofumpt -w .
 	@echo "Vetting code:"

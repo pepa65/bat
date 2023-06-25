@@ -89,32 +89,28 @@ type app struct {
 	systemder resetwriter
 }
 
-// errorf formats according to a format specifier, prints to standard
-// error, and exits with an error code 1.
+// Print to stderr using format, exit with error code 1
 func (a *app) errorf(format string, v ...any) {
 	fmt.Fprintf(a.console.err, format, v...)
 	a.console.quit(failure)
 }
 
-// errorln formats using the default format for its operands, appends a
-// new line, writes to standard error, and exits with error code 1.
+// Print to stderr with neline using format, exit with error code 1
 func (a *app) errorln(v ...any) {
 	a.errorf("%v\n", v...)
 }
 
-// writef formats according to a format specifier, prints to standard
-// input.
+// Print to stdout according to format specifier
 func (a *app) writef(format string, v ...any) {
 	fmt.Fprintf(a.console.out, format, v...)
 }
 
-// writeln formats using the default format for its operands, appends a
-// new line, and writes to standard input.
+// Print to stdout with newline using format for its operands
 func (a *app) writeln(v ...any) {
 	a.writef("%v\n", v...)
 }
 
-// page filters the string doc through the less pager.
+// Filter the string doc through the less pager
 func (a *app) page(doc string) {
 	cmd := exec.Command(
 		a.pager,
@@ -137,18 +133,43 @@ func (a *app) page(doc string) {
 	a.console.quit(success)
 }
 
-// show prints the value of the given /sys/class/power_supply/BAT?/
-// variable.
-func (a *app) show(v power.Variable) {
+// Return the value of the given /sys/class/power_supply/BAT?/ variable
+func (a *app) show(v power.Variable) string {
 	val, err := a.get(v)
 	if err != nil {
 		if errors.Is(err, power.ErrNotFound) {
 			a.errorln(msgIncompatible)
-			return
 		}
 		log.Fatalln(err)
 	}
-	a.writeln(val)
+	return val
+}
+
+// Print the battery health
+func (a *app) health() string {
+	charge, err1 := a.get(power.ChargeFull)
+	if err1 != nil {
+		if errors.Is(err1, power.ErrNotFound) {
+			a.errorln(msgIncompatible)
+		}
+		log.Fatalln(err1)
+	}
+	chargedesign, err2 := a.get(power.ChargeFullDesign)
+	if err2 != nil {
+		if errors.Is(err2, power.ErrNotFound) {
+			a.errorln(msgIncompatible)
+		}
+		log.Fatalln(err2)
+	}
+	icharge, err3 := strconv.Atoi(charge)
+	if err3 != nil {
+		log.Fatalln(err3)
+	}
+	ichargedesign, err4 := strconv.Atoi(chargedesign)
+	if err4 != nil {
+		log.Fatalln(err4)
+	}
+	return (fmt.Sprintf("%d", icharge*100/ichargedesign))
 }
 
 func (a *app) help() {
@@ -211,41 +232,36 @@ func (a *app) disable() {
 	a.writeln(msgPersistenceDisabled)
 }
 
-func (a *app) enabled() {
+func (a *app) enabled() string {
 	if err := a.systemder.Enabled(); err != nil {
-		a.writeln(msgFalse)
+		return msgFalse
 	} else {
-		a.writeln(msgTrue)
+		return msgTrue
 	}
 }
 
-func (a *app) present() {
+func (a *app) present() string {
 	if err := a.systemder.Present(); err != nil {
-		a.writeln(msgFalse)
+		return msgFalse
 	} else {
-		a.writeln(msgTrue)
+		return msgTrue
 	}
 }
 
 func (a *app) status() {
-	a.writef("%s", "Level: ")
-	a.show(power.Capacity)
-	a.writef("%s", "Limit: ")
-	a.show(power.Threshold)
-	a.show(power.Status)
-	a.writef("%s", "Persist systemd units present: ")
-	a.present()
-	a.writef("%s", "Persist systemd units enabled: ")
-	a.enabled()
+	a.writef("Level: %s%%\n", a.show(power.Capacity))
+	a.writef("Limit: %s%%\n", a.show(power.Threshold))
+	a.writef("Health: %s%%\n", a.health())
+	a.writef("Persist systemd units present: %s\n", a.present())
+	a.writef("Persist systemd units enabled: %s\n", a.enabled())
 }
 
-// valid returns true if limit is in the range 1-100.
+// Return true if limit is in the range 1-100
 func valid(limit int) bool {
 	return limit >= 1 && limit <= 100
 }
 
-// kernel returns the Linux kernel version as a string and an error
-// otherwise.
+// Return the Linux kernel version as a string and an error otherwise
 func kernel() (string, error) {
 	var name unix.Utsname
 	if err := unix.Uname(&name); err != nil {
@@ -254,11 +270,10 @@ func kernel() (string, error) {
 	return string(name.Release[:]), nil
 }
 
-// isRequiredKernel returns true if the string ver represents a
-// semantic version later than 5.4 and false otherwise (this is the
-// earliest version of the Linux kernel to expose the battery charge
-// limit variable). It also returns an error if it failed parse the
-// string.
+// Return true if ver represents a semantic version later than 5.4
+// and false otherwise (5.4 is the earliest version of the Linux kernel
+// to expose the battery charge limit variable)
+// Returns error if parsing the string fails
 func requiredKernel(ver string) (bool, error) {
 	var maj, min int
 	_, err := fmt.Sscanf(ver, "%d.%d", &maj, &min)
@@ -318,7 +333,7 @@ func (a *app) limit(args []string) {
 	a.writeln(msgLimitSet)
 }
 
-// Run executes the application.
+// Execute the application
 func Run() {
 	app := &app{
 		console: &console{
@@ -337,7 +352,6 @@ func Run() {
 		return
 	}
 	switch command := os.Args[1]; command {
-	// Generic program information.
 	case "h", "help", "-h", "--help":
 		app.help()
 	case "V", "v", "version", "-V", "-v", "--version":
