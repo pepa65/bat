@@ -29,19 +29,19 @@ const (
 const (
 	msgTrue                   = "yes"
 	msgFalse                  = "no"
-	msgArgNotInt              = "Argument must be an integer."
-	msgExpectedSingleArg      = "Single argument needed."
-	msgIncompatibleKernel     = "Linux kernel version 5.4 or later required."
-	msgIncompatibleSystemd    = "Package systemd version 243-rc1 or later required."
+	msgArgNotInt              = "Argument must be an integer"
+	msgExpectedSingleArg      = "Single argument needed"
+	msgIncompatibleKernel     = "Linux kernel version 5.4 or later required"
+	msgIncompatibleSystemd    = "Package systemd version 243-rc1 or later required"
 	msgNoOption               = "Option %s not implemented. Run `bat help` to see the available options.\n"
-	msgOutOfRangeThresholdVal = "Percentage must be between 1 and 100."
-	msgPermissionDenied       = "Permission denied. Try running this command using 'sudo'."
-	msgPersistenceEnabled     = "Persist systemd units present and enabled."
-	msgPersistenceRemoved     = "Persist systemd units no longer present."
-	msgPersistenceDisabled    = "Persist systemd unit present but disabled."
-	msgLimitSet               = "Charge limit set.\nRun 'sudo bat persist' to keep it after restart/hibernation/sleep."
+	msgOutOfRangeThresholdVal = "Percentage must be between 1 and 100"
+	msgPermissionDenied       = "Permission denied. Try running this command using 'sudo'"
+	msgPersistenceEnabled     = "Persist systemd units present and enabled"
+	msgPersistenceRemoved     = "Persist systemd units no longer present"
+	msgPersistenceDisabled    = "Persist systemd unit present but disabled"
+	msgLimitSet               = "Charge limit set.\nRun 'sudo bat persist' to keep it after restart/hibernation/sleep"
 	msgIncompatible           = `This program is most likely not compatible with your system. See
-https://github.com/pepa65/bat#disclaimer for details.`
+https://github.com/pepa65/bat#disclaimer for details`
 )
 
 // tag is the version information evaluated at compile time.
@@ -207,7 +207,7 @@ func (a *app) persist() {
 			log.Fatalln(err)
 		}
 	}
-	a.writeln(msgPersistenceEnabled)
+	a.writef("%s: %s%%\n", msgPersistenceEnabled, a.show(power.Threshold))
 }
 
 func (a *app) remove() {
@@ -229,7 +229,7 @@ func (a *app) disable() {
 		}
 		log.Fatal(err)
 	}
-	a.writeln(msgPersistenceDisabled)
+	a.writef("%s: %s%%\n", msgPersistenceDisabled, a.show(power.Threshold))
 }
 
 func (a *app) enabled() string {
