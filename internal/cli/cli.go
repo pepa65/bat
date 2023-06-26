@@ -252,6 +252,7 @@ func (a *app) status() {
 	a.writef("Level: %s%%\n", a.show(power.Capacity))
 	a.writef("Limit: %s%%\n", a.show(power.Threshold))
 	a.writef("Health: %s%%\n", a.health())
+	a.writeln(a.show(power.Status))
 	a.writef("Persist systemd units present: %s\n", a.present())
 	a.writef("Persist systemd units enabled: %s\n", a.enabled())
 }
