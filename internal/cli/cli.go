@@ -148,37 +148,39 @@ func (a *app) show(v power.Variable) string {
 // Print the battery health
 func (a *app) health() string {
 	energy := false
-	charge, err1 := a.get(power.ChargeFull)
-	if err1 != nil {
-		if errors.Is(err1, power.ErrNotFound) { // Try EnergyFull
-			charge, err1 = a.get(power.EnergyFull)
-			if errors.Is(err1, power.ErrNotFound) {
+	var chargedesign string
+	var icharge, ichargedesign int
+	charge, err := a.get(power.ChargeFull)
+	if err != nil {
+		if errors.Is(err, power.ErrNotFound) { // Try EnergyFull
+			charge, err = a.get(power.EnergyFull)
+			if errors.Is(err, power.ErrNotFound) {
 				a.errorln(msgIncompatible)
 			} else {
 				energy = true
 			}
 		} else {
-			log.Fatalln(err1)
+			log.Fatalln(err)
 		}
 	}
 	if energy {
-		chargedesign, err2 := a.get(power.EnergyFullDesign)
+		chargedesign, err = a.get(power.EnergyFullDesign)
 	} else {
-		chargedesign, err2 := a.get(power.ChargeFullDesign)
+		chargedesign, err = a.get(power.ChargeFullDesign)
 	}
-	if err2 != nil {
-		if errors.Is(err2, power.ErrNotFound) {
+	if err != nil {
+		if errors.Is(err, power.ErrNotFound) {
 			a.errorln(msgIncompatible)
 		}
-		log.Fatalln(err2)
+		log.Fatalln(err)
 	}
-	icharge, err3 := strconv.Atoi(charge)
-	if err3 != nil {
-		log.Fatalln(err3)
+	icharge, err = strconv.Atoi(charge)
+	if err != nil {
+		log.Fatalln(err)
 	}
-	ichargedesign, err4 := strconv.Atoi(chargedesign)
-	if err4 != nil {
-		log.Fatalln(err4)
+	ichargedesign, err = strconv.Atoi(chargedesign)
+	if err != nil {
+		log.Fatalln(err)
 	}
 	return (fmt.Sprintf("%d", icharge*100/ichargedesign))
 }
