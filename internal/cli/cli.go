@@ -147,14 +147,25 @@ func (a *app) show(v power.Variable) string {
 
 // Print the battery health
 func (a *app) health() string {
+	energy := false
 	charge, err1 := a.get(power.ChargeFull)
 	if err1 != nil {
-		if errors.Is(err1, power.ErrNotFound) {
-			a.errorln(msgIncompatible)
+		if errors.Is(err1, power.ErrNotFound) { // Try EnergyFull
+			charge, err1 = a.get(power.EnergyFull)
+			if errors.Is(err1, power.ErrNotFound) {
+				a.errorln(msgIncompatible)
+			} else {
+				energy = true
+			}
+		} else {
+			log.Fatalln(err1)
 		}
-		log.Fatalln(err1)
 	}
-	chargedesign, err2 := a.get(power.ChargeFullDesign)
+	if energy {
+		chargedesign, err2 := a.get(power.EnergyFullDesign)
+	} else {
+		chargedesign, err2 := a.get(power.ChargeFullDesign)
+	}
 	if err2 != nil {
 		if errors.Is(err2, power.ErrNotFound) {
 			a.errorln(msgIncompatible)

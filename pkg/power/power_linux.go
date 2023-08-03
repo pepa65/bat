@@ -18,6 +18,8 @@ const (
 	Threshold
 	ChargeFull
 	ChargeFullDesign
+	EnergyFull
+	EnergyFullDesign
 )
 
 func (v Variable) String() string {
@@ -32,6 +34,10 @@ func (v Variable) String() string {
 		return "charge_full"
 	case ChargeFullDesign:
 		return "charge_full_design"
+	case EnergyFull:
+		return "energy_full"
+	case EnergyFullDesign:
+		return "energy_full_design"
 	default:
 		return "unrecognised"
 	}
