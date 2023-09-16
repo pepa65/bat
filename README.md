@@ -1,4 +1,4 @@
-# `bat v0.6.2`
+# `bat v0.6.3`
 **Manage battery charge limit**
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/pepa65/bat)](https://goreportcard.com/report/github.com/pepa65/bat)
@@ -49,6 +49,8 @@ Alternatively, the application can be build from source by running the following
 ```shell
 make build
 ```
+
+To just simply install, do: `make install` (requires root privileges).
 
 You can also rename the binary to something else if another program with the same name already exists.
 
