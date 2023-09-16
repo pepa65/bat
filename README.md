@@ -1,4 +1,4 @@
-# `bat v0.6.3`
+# `bat v0.6.4`
 **Manage battery charge limit**
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/pepa65/bat)](https://goreportcard.com/report/github.com/pepa65/bat)
