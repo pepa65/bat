@@ -1,20 +1,24 @@
-name: "Release"
+name: release
 
 on:
   push:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
-  tagged-release:
-    name: "Release"
+  release-linux-amd64:
+    name: release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
-      - run: sudo apt-get update -y -q
-      - run: sudo apt-get install -y golang
-      - run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w"
-      - name: "Uploading artifact"
-        uses: actions/upload-artifact@v3.1.0
+      - uses: actions/checkout@v3
+      - uses: wangyoucao577/go-release-action@v1
         with:
-          path: bat
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: linux
+          goarch: amd64
+          executable_compression: upx
+          compress_assets: OFF
