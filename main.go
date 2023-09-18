@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	version                   = "0.6.7"
+	version                   = "0.7.0"
 	years                     = "2023"
 	msgTrue                   = "yes"
 	msgFalse                  = "no"
@@ -140,7 +140,7 @@ func (a *app) page(doc string) {
 // Return the value of the given /sys/class/power_supply/BAT?/ variable
 func (a *app) show(v Variable) string {
 	val, err := a.get(v)
-	if err != nil {
+	if err != nil || val == "" {
 		if errors.Is(err, ErrNotFound) {
 			a.errorln(msgIncompatible)
 		}
