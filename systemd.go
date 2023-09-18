@@ -1,4 +1,4 @@
-// Package systemd - Managing systemd services to persist charge limit after restart/hibernation/sleep
+// systemd.go - Managing systemd services to persist charge limit after restart/hibernation/sleep
 package main
 
 import (

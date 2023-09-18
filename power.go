@@ -1,4 +1,4 @@
-// Package power - I/O for /sys/class/power_supply
+// power.go - I/O for /sys/class/power_supply
 package main
 
 import (

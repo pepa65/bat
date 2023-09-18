@@ -1,4 +1,4 @@
-// bat
+// bat - Manage battery charge limit
 package main
 
 import (
@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	version                   = "0.6.5"
+	version                   = "0.6.6"
 	years                     = "2023"
 	msgTrue                   = "yes"
 	msgFalse                  = "no"
@@ -192,14 +192,14 @@ func (a *app) health() string {
 func (a *app) help() {
 	buf := new(bytes.Buffer)
 	buf.Grow(1024)
-	fmt.Fprintf(buf, helpmsg)
+	fmt.Fprint(buf, helpmsg)
 	a.page(buf.String())
 }
 
 func (a *app) version() {
 	buf := new(bytes.Buffer)
 	buf.Grow(128)
-	fmt.Fprintf(buf, versionmsg)
+	fmt.Fprint(buf, versionmsg)
 	a.page(buf.String())
 }
 
