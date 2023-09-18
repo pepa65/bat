@@ -1,4 +1,4 @@
-# `bat v0.6.6`
+# `bat v0.6.7`
 **Manage battery charge limit**
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/pepa65/bat)](https://goreportcard.com/report/github.com/pepa65/bat)
@@ -10,7 +10,7 @@
 * Required: Linux-5.4+ systemd-244+
  
 ```
-bat v0.6.6 - Manage battery charge limit
+bat v0.6.7 - Manage battery charge limit
 Repo:  github.com/pepa65/bat
 Ref:   https://wiki.archlinux.org/title/Laptop/ASUS#Battery_charge_threshold
 Usage: bat <option>
@@ -79,6 +79,6 @@ Persist systemd units enabled: yes
 ### Persist the currently set charge limit after restart/hibernation/wake-up (requires privileges):
 `sudo bat persist`
 
-### Clear the persist config settings (requires privileges):
-`sudo bat clear`
+### Remove the persist config settings (requires privileges):
+`sudo bat remove`
 
