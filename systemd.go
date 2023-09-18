@@ -1,5 +1,5 @@
 // Package systemd - Managing systemd services to persist charge limit after restart/hibernation/sleep
-package systemd
+package main
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"text/template"
 
-	"github.com/pepa65/bat/pkg/power"
+	//"github.com/pepa65/bat/pkg/power"
 )
 
 // ErrIncompatSystemd indicates an incompatible version of systemd.
@@ -51,7 +51,7 @@ type config struct {
 }
 
 func configs() ([]config, error) {
-	val, err := power.Get(power.Threshold)
+	val, err := Get(Threshold)
 	if err != nil {
 		return nil, err
 	}

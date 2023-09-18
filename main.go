@@ -1,9 +1,8 @@
-// Package cli - Command line user interface
-package cli
+// bat
+package main
 
 import (
 	"bytes"
-	_ "embed" // Allow embedding version and help templates
 	"errors"
 	"fmt"
 	"io"
@@ -13,20 +12,13 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"text/template"
-	"time"
 
-	"github.com/pepa65/bat/internal/systemd"
-	"github.com/pepa65/bat/pkg/power"
 	"golang.org/x/sys/unix"
 )
 
 const (
-	success = iota
-	failure
-)
-
-const (
+	version                   = "0.6.5"
+	years                     = "2023"
 	msgTrue                   = "yes"
 	msgFalse                  = "no"
 	msgArgNotInt              = "Argument must be an integer"
@@ -44,14 +36,26 @@ const (
 https://github.com/pepa65/bat#disclaimer for details`
 )
 
-// tag is the version information evaluated at compile time.
-var tag string
+const (
+	success = iota
+	failure
+)
 
 var (
-	//go:embed help.tmpl
-	help string
-	//go:embed version.tmpl
-	version string
+	versionmsg = "bat v"+version+`
+Copyright `+years+" Tshaka Eric Lekholoane, github.com/pepa65 (MIT License)"
+	helpmsg = "bat v"+version+` - Manage battery charge limit
+Repo:  github.com/pepa65/bat
+Ref:   https://wiki.archlinux.org/title/Laptop/ASUS#Battery_charge_threshold
+Usage: bat <option>
+  Options (every option except 's[tatus]' needs root privileges):
+    [s[tatus]]       Display charge level, limit, health & persist status.
+    l[imit] <int>    Set the charge limit to <int> percent.
+    p[ersist]        Install and enable the persist systemd unit files.
+    r[emove]         Remove the persist systemd unit files.
+    d[isable]        Disable the persist systemd unit files.
+    h[elp]           Just display this help text.
+    v[ersion]        Just display version information.`
 )
 
 // resetwriter is the interface that groups the methods to access systemd services.
@@ -81,9 +85,9 @@ type app struct {
 	// cat is the path of cat for fallback.
 	cat string
 	// get is the function used to read the value of the battery variable.
-	get func(power.Variable) (string, error)
+	get func(Variable) (string, error)
 	// set is the function used to write the battery charge limit value.
-	set func(power.Variable, string) error
+	set func(Variable, string) error
 	// systemder is used to write and delete systemd services that persist
 	// the charge limit after restart/hibernate/sleep.
 	systemder resetwriter
@@ -134,10 +138,10 @@ func (a *app) page(doc string) {
 }
 
 // Return the value of the given /sys/class/power_supply/BAT?/ variable
-func (a *app) show(v power.Variable) string {
+func (a *app) show(v Variable) string {
 	val, err := a.get(v)
 	if err != nil {
-		if errors.Is(err, power.ErrNotFound) {
+		if errors.Is(err, ErrNotFound) {
 			a.errorln(msgIncompatible)
 		}
 		log.Fatalln(err)
@@ -150,11 +154,11 @@ func (a *app) health() string {
 	energy := false
 	var chargedesign string
 	var icharge, ichargedesign int
-	charge, err := a.get(power.ChargeFull)
+	charge, err := a.get(ChargeFull)
 	if err != nil {
-		if errors.Is(err, power.ErrNotFound) { // Try EnergyFull
-			charge, err = a.get(power.EnergyFull)
-			if errors.Is(err, power.ErrNotFound) {
+		if errors.Is(err, ErrNotFound) { // Try EnergyFull
+			charge, err = a.get(EnergyFull)
+			if errors.Is(err, ErrNotFound) {
 				a.errorln(msgIncompatible)
 			} else {
 				energy = true
@@ -164,12 +168,12 @@ func (a *app) health() string {
 		}
 	}
 	if energy {
-		chargedesign, err = a.get(power.EnergyFullDesign)
+		chargedesign, err = a.get(EnergyFullDesign)
 	} else {
-		chargedesign, err = a.get(power.ChargeFullDesign)
+		chargedesign, err = a.get(ChargeFullDesign)
 	}
 	if err != nil {
-		if errors.Is(err, power.ErrNotFound) {
+		if errors.Is(err, ErrNotFound) {
 			a.errorln(msgIncompatible)
 		}
 		log.Fatalln(err)
@@ -188,29 +192,24 @@ func (a *app) health() string {
 func (a *app) help() {
 	buf := new(bytes.Buffer)
 	buf.Grow(1024)
-	tmpl := template.Must(template.New("help").Parse(help))
-	tmpl.Execute(buf, struct {
-		Tag string
-	}{
-		tag,
-	})
+	fmt.Fprintf(buf, helpmsg)
 	a.page(buf.String())
 }
 
 func (a *app) version() {
 	buf := new(bytes.Buffer)
 	buf.Grow(128)
-	fmt.Fprintf(buf, version, tag, time.Now().Year())
+	fmt.Fprintf(buf, versionmsg)
 	a.page(buf.String())
 }
 
 func (a *app) persist() {
 	if err := a.systemder.Write(); err != nil {
 		switch {
-		case errors.Is(err, systemd.ErrIncompatSystemd):
+		case errors.Is(err, ErrIncompatSystemd):
 			a.errorln(msgIncompatibleSystemd)
 			return
-		case errors.Is(err, power.ErrNotFound):
+		case errors.Is(err, ErrNotFound):
 			a.errorln(msgIncompatible)
 			return
 		case errors.Is(err, syscall.EACCES):
@@ -220,7 +219,7 @@ func (a *app) persist() {
 			log.Fatalln(err)
 		}
 	}
-	a.writef("%s: %s%%\n", msgPersistenceEnabled, a.show(power.Threshold))
+	a.writef("%s: %s%%\n", msgPersistenceEnabled, a.show(Threshold))
 }
 
 func (a *app) remove() {
@@ -242,7 +241,7 @@ func (a *app) disable() {
 		}
 		log.Fatal(err)
 	}
-	a.writef("%s: %s%%\n", msgPersistenceDisabled, a.show(power.Threshold))
+	a.writef("%s: %s%%\n", msgPersistenceDisabled, a.show(Threshold))
 }
 
 func (a *app) enabled() string {
@@ -262,10 +261,10 @@ func (a *app) present() string {
 }
 
 func (a *app) status() {
-	a.writef("Level: %s%%\n", a.show(power.Capacity))
-	a.writef("Limit: %s%%\n", a.show(power.Threshold))
+	a.writef("Level: %s%%\n", a.show(Capacity))
+	a.writef("Limit: %s%%\n", a.show(Threshold))
 	a.writef("Health: %s%%\n", a.health())
-	a.writeln(a.show(power.Status))
+	a.writeln(a.show(Status))
 	a.writef("Persist systemd units present: %s\n", a.present())
 	a.writef("Persist systemd units enabled: %s\n", a.enabled())
 }
@@ -332,9 +331,9 @@ func (a *app) limit(args []string) {
 		a.errorln(msgIncompatibleKernel)
 		return
 	}
-	if err := a.set(power.Threshold, strings.TrimSpace(val)); err != nil {
+	if err := a.set(Threshold, strings.TrimSpace(val)); err != nil {
 		switch {
-		case errors.Is(err, power.ErrNotFound):
+		case errors.Is(err, ErrNotFound):
 			a.errorln(msgIncompatible)
 			return
 		case errors.Is(err, syscall.EACCES):
@@ -348,7 +347,7 @@ func (a *app) limit(args []string) {
 }
 
 // Execute the application
-func Run() {
+func main() {
 	app := &app{
 		console: &console{
 			err:  os.Stderr,
@@ -357,9 +356,9 @@ func Run() {
 		},
 		pager:     "less",
 		cat:       "cat",
-		get:       power.Get,
-		set:       power.Set,
-		systemder: systemd.New(),
+		get:       Get,
+		set:       Set,
+		systemder: New(),
 	}
 	if len(os.Args) == 1 {
 		app.status()

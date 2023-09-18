@@ -1,4 +1,4 @@
-# `bat v0.6.4`
+# `bat v0.6.5`
 **Manage battery charge limit**
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/pepa65/bat)](https://goreportcard.com/report/github.com/pepa65/bat)
@@ -10,15 +10,18 @@
 * Required: Linux-5.4+ systemd-244+
  
 ```
-Usage:  bat <option>
-  Options  ([^] needs root privileges):
-    [s[tatus]]       Display charge level, limit, health & (persist).
-    l[imit] <int>    Set the charge limit to <int> percent [^].
-    p[ersist]        Install and enable the persist systemd units [^].
-    r[emove]         Remove the persist systemd units [^].
-    d[isable]        Disable the persist systemd units [^].
-    h[elp]           Display only this help text.
-    v[ersion]        Display only version information.
+bat v0.6.5 - Manage battery charge limit
+Repo:  github.com/pepa65/bat
+Ref:   https://wiki.archlinux.org/title/Laptop/ASUS#Battery_charge_threshold
+Usage: bat <option>
+  Options (every option except 's[tatus]' needs root privileges):
+    [s[tatus]]       Display charge level, limit, health & persist status.
+    l[imit] <int>    Set the charge limit to <int> percent.
+    p[ersist]        Install and enable the persist systemd unit files.
+    r[emove]         Remove the persist systemd unit files.
+    d[isable]        Disable the persist systemd unit files.
+    h[elp]           Just display this help text.
+    v[ersion]        Just display version information.
 ```
 
 ## About
@@ -44,30 +47,38 @@ sudo wget -qO /usr/local/bin/bat github.com/pepa65/bat/releases/latest/download/
 chmod +x /usr/local/bin/bat
 ```
 
-Alternatively, the application can be build from source by running the following command in the root directory of this repository. This requires a working version of [Make](https://www.gnu.org/software/make/) and [Go](https://golang.org/).
+Alternatively, the application can be build from source by running the following command in the root directory of this repository. This requires a working version of [Go](https://golang.org/):
 
-```shell
-make build
-```
+`CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w"`
 
-To just simply install, do: `make install` (requires root privileges).
-
+To install, do: `sudo mv bat /usr/local/bin` (requires root privileges).
 You can also rename the binary to something else if another program with the same name already exists.
 
+Or install by simply: `go install github.com/pepa65/bat@latest`
+
 ## Examples
-```shell
-# Print the current battery charge level, limit and status:
-bat
+### Print the current battery charge level, limit and status
+`bat`
 
-# Set a battery charge limit in percentage points (requires privileges):
-sudo bat limit 80
-
-# Undo the battery charge limit (requires privileges):
-sudo bat limit 100
-
-# Persist the currently set charge limit after restart/hibernation/wake-up (requires privileges):
-sudo bat persist
-
-# Clear the persist config settings (requires privileges):
-sudo bat clear
+Sample output:
 ```
+Level: 45%
+Limit: 80%
+Health: 85%
+Charging
+Persist systemd units present: yes
+Persist systemd units enabled: yes
+```
+
+### Set a battery charge limit in percentage points (requires privileges):
+`sudo bat limit 80`
+
+### Undo the battery charge limit (requires privileges):
+`sudo bat limit 100`
+
+### Persist the currently set charge limit after restart/hibernation/wake-up (requires privileges):
+`sudo bat persist`
+
+### Clear the persist config settings (requires privileges):
+`sudo bat clear`
+

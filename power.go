@@ -1,5 +1,5 @@
 // Package power - I/O for /sys/class/power_supply
-package power
+package main
 
 import (
 	"bytes"
