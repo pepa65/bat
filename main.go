@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	version                   = "0.7.0"
+	version                   = "0.8.1"
 	years                     = "2023"
 	msgTrue                   = "yes"
 	msgFalse                  = "no"
@@ -262,7 +262,7 @@ func (a *app) present() string {
 
 func (a *app) status() {
 	a.writef("Level: %s%%\n", a.show(Capacity))
-	limit := a.show(Threshold)
+	limit, _ := a.get(Threshold)
 	if limit == "" {
 		a.writeln("Charge limit seems not supported")
 	} else {

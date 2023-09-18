@@ -74,7 +74,7 @@ func find(v Variable) (string, error) {
 func Get(v Variable) (string, error) {
 	p, err := find(v)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	contents, err := os.ReadFile(p)
 	if err != nil {
