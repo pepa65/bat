@@ -140,7 +140,7 @@ func (a *app) page(doc string) {
 // Return the value of the given /sys/class/power_supply/BAT?/ variable
 func (a *app) show(v Variable) string {
 	val, err := a.get(v)
-	if err != nil || val == "" {
+	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			a.errorln(msgIncompatible)
 		}
@@ -262,11 +262,18 @@ func (a *app) present() string {
 
 func (a *app) status() {
 	a.writef("Level: %s%%\n", a.show(Capacity))
-	a.writef("Limit: %s%%\n", a.show(Threshold))
+	limit := a.show(Threshold)
+	if limit == "" {
+		a.writeln("Charge limit seems not supported")
+	} else {
+		a.writef("Limit: %s%%\n", a.show(Threshold))
+	}
 	a.writef("Health: %s%%\n", a.health())
 	a.writeln(a.show(Status))
-	a.writef("Persist systemd units present: %s\n", a.present())
-	a.writef("Persist systemd units enabled: %s\n", a.enabled())
+	if limit != "" {
+		a.writef("Persist systemd units present: %s\n", a.present())
+		a.writef("Persist systemd units enabled: %s\n", a.enabled())
+	}
 }
 
 // Return true if limit is in the range 1-100

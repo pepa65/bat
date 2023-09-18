@@ -1,4 +1,4 @@
-# `bat v0.7.0`
+# `bat v0.8.0`
 **Manage battery charge limit**
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/pepa65/bat)](https://goreportcard.com/report/github.com/pepa65/bat)
@@ -10,7 +10,7 @@
 * Required: Linux-5.4+ systemd-244+
  
 ```
-bat v0.7.0 - Manage battery charge limit
+bat v0.8.0 - Manage battery charge limit
 Repo:  github.com/pepa65/bat
 Ref:   https://wiki.archlinux.org/title/Laptop/ASUS#Battery_charge_threshold
 Usage: bat <option>
@@ -27,7 +27,7 @@ Usage: bat <option>
 ## About
 The goal is to replicate the functionality of the [ASUS Battery Health Charging](https://www.asus.com/us/support/FAQ/1032726/) utility for ASUS laptops on Windows which aims to prolong the battery's life-span <a href="https://electrek.co/2017/09/01/tesla-battery-expert-recommends-daily-battery-pack-charging/"><sup>1</sup></a> <a href="https://batteryuniversity.com/learn/article/how_to_prolong_lithium_based_batteries"><sup>2</sup></a>.
 
-* Linux kernel module: `asus_wmi_sensors`
+* Linux kernel module: `asus_nb_wmi`
 * System variables used: `/sys/class/power_supply/BAT?/`
 
 ## Requirements
