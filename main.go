@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	version                   = "0.8.6"
+	version                   = "0.8.7"
 	years                     = "2023"
 	msgTrue                   = "yes"
 	msgFalse                  = "no"
@@ -263,9 +263,7 @@ func (a *app) present() string {
 func (a *app) status() {
 	a.writef("Level: %s%%\n", a.show(Capacity))
 	limit, _ := a.get(Threshold)
-	if limit == "" {
-		a.writeln("Charge limit seems not supported")
-	} else {
+	if limit != "" {
 		a.writef("Limit: %s%%\n", a.show(Threshold))
 	}
 	a.writef("Health: %s%%\n", a.health())
@@ -273,6 +271,8 @@ func (a *app) status() {
 	if limit != "" {
 		a.writef("Persist systemd units present: %s\n", a.present())
 		a.writef("Persist systemd units enabled: %s\n", a.enabled())
+	} else {
+		a.writeln("Charge limit is not supported")
 	}
 }
 
