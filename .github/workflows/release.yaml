@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
+      - run: sudo apt-get update -y -q
+      - run: sudo apt-get install -y golang
       - run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w"
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:

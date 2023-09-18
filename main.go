@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	version                   = "0.8.1"
+	version                   = "0.8.2"
 	years                     = "2023"
 	msgTrue                   = "yes"
 	msgFalse                  = "no"
