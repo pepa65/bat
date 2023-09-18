@@ -6,8 +6,7 @@ stages:
 building:
   stage: build
   script:
-    - git clone https://github.com/pepa65/bat
-    - cd bat
+    - go get -u github.com/pepa65/bat
     - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w"
   artifacts:
     name: bat
