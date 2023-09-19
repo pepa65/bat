@@ -2,7 +2,7 @@
 [![GoDoc](https://godoc.org/github.com/pepa65/bat?status.svg)](https://godoc.org/github.com/pepa65/bat)
 ![Continuous Integration](https://github.com/pepa65/bat/actions/workflows/ci.yaml/badge.svg)
 
-# bat v0.8.9
+# bat v0.8.10
 **Manage battery charge limit**
 
 * Repo: github.com/pepa65/bat
@@ -11,7 +11,7 @@
 * Required: Linux-5.4+ systemd-244+
  
 ```
-bat v0.8.9 - Manage battery charge limit
+bat v0.8.10 - Manage battery charge limit
 Repo:  github.com/pepa65/bat
 Ref:   https://wiki.archlinux.org/title/Laptop/ASUS#Battery_charge_threshold
 Usage: bat <option>
@@ -36,7 +36,7 @@ The goal is to replicate the functionality of the [ASUS Battery Health Charging]
 * To persist the battery charge limit setting after restart/hibernation/wake-up, the application relies on **[systemd](https://systemd.io/) version 244 or later** (bundled with most current Linux distributions).
 
 ## Disclaimer
-This has been reported to only work with some ASUS and [Lenovo ThinkPad](https://github.com/tshakalekholoane/bat/discussions/23) laptops. For Dell systems, see [smbios-utils](https://github.com/dell/libsmbios), particularly the `smbios-battery-ctl` command, or install it using your package manager. For other manufacturers there is also [TLP](https://linrunner.de/tlp/).
+This has been reported to only work with some ASUS and [Lenovo ThinkPad](https://github.com/tshakalekholoane/bat/discussions/23) laptops. For Dell Lattitude/Precision laptops, use package smbios-utils: `smbios-battery-ctl --set-custom-charge-interval=50 80`. For other manufacturers there is also [TLP](https://linrunner.de/tlp/).
 
 ## Installation
 Precompiled binaries (Linux x86_64) are available from the [GitHub releases page](https://github.com/pepa65/bat/releases), download the [latest here](https://github.com/pepa65/bat/releases/latest/download/bat).
