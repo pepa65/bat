@@ -1,9 +1,8 @@
-// Package cli - Command line user interface
-package cli
+// bat - Manage battery charge limit
+package main
 
 import (
 	"bytes"
-	_ "embed" // Allow embedding version and help templates
 	"errors"
 	"fmt"
 	"io"
@@ -13,12 +12,28 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"text/template"
-	"time"
 
-	"github.com/pepa65/bat/internal/systemd"
-	"github.com/pepa65/bat/pkg/power"
 	"golang.org/x/sys/unix"
+)
+
+const (
+	version                   = "0.8.8"
+	years                     = "2023"
+	msgTrue                   = "yes"
+	msgFalse                  = "no"
+	msgArgNotInt              = "Argument must be an integer"
+	msgExpectedSingleArg      = "Single argument needed"
+	msgIncompatibleKernel     = "Linux kernel version 5.4 or later required"
+	msgIncompatibleSystemd    = "Package systemd version 243-rc1 or later required"
+	msgNoOption               = "Option %s not implemented. Run `bat help` to see the available options.\n"
+	msgOutOfRangeThresholdVal = "Percentage must be between 1 and 100"
+	msgPermissionDenied       = "Permission denied. Try running this command using 'sudo'"
+	msgPersistenceEnabled     = "Persist systemd units present and enabled"
+	msgPersistenceRemoved     = "Persist systemd units no longer present"
+	msgPersistenceDisabled    = "Persist systemd unit present but disabled"
+	msgLimitSet               = "Charge limit set.\nRun 'sudo bat persist' to keep it after restart/hibernation/sleep"
+	msgIncompatible           = `This program is most likely not compatible with your system. See
+https://github.com/pepa65/bat#disclaimer for details`
 )
 
 const (
@@ -26,32 +41,21 @@ const (
 	failure
 )
 
-const (
-	msgTrue                   = "yes"
-	msgFalse                  = "no"
-	msgArgNotInt              = "Argument must be an integer."
-	msgExpectedSingleArg      = "Single argument needed."
-	msgIncompatibleKernel     = "Linux kernel version 5.4 or later required."
-	msgIncompatibleSystemd    = "Package systemd version 243-rc1 or later required."
-	msgNoOption               = "Option %s not implemented. Run `bat help` to see the available options.\n"
-	msgOutOfRangeThresholdVal = "Percentage must be between 1 and 100."
-	msgPermissionDenied       = "Permission denied. Try running this command using 'sudo'."
-	msgPersistenceEnabled     = "Persist systemd units present and enabled."
-	msgPersistenceRemoved     = "Persist systemd units no longer present."
-	msgPersistenceDisabled    = "Persist systemd unit present but disabled."
-	msgLimitSet               = "Charge limit set.\nRun 'sudo bat persist' to keep it after restart/hibernation/sleep."
-	msgIncompatible           = `This program is most likely not compatible with your system. See
-https://github.com/pepa65/bat#disclaimer for details.`
-)
-
-// tag is the version information evaluated at compile time.
-var tag string
-
 var (
-	//go:embed help.tmpl
-	help string
-	//go:embed version.tmpl
-	version string
+	versionmsg = "bat v"+version+`
+Copyright `+years+" Tshaka Eric Lekholoane, github.com/pepa65 (MIT License)"
+	helpmsg = "bat v"+version+` - Manage battery charge limit
+Repo:  github.com/pepa65/bat
+Ref:   https://wiki.archlinux.org/title/Laptop/ASUS#Battery_charge_threshold
+Usage: bat <option>
+  Options (every option except 's[tatus]' needs root privileges):
+    [s[tatus]]       Display charge level, limit, health & persist status.
+    l[imit] <int>    Set the charge limit to <int> percent.
+    p[ersist]        Install and enable the persist systemd unit files.
+    r[emove]         Remove the persist systemd unit files.
+    d[isable]        Disable the persist systemd unit files.
+    h[elp]           Just display this help text.
+    v[ersion]        Just display version information.`
 )
 
 // resetwriter is the interface that groups the methods to access systemd services.
@@ -81,40 +85,36 @@ type app struct {
 	// cat is the path of cat for fallback.
 	cat string
 	// get is the function used to read the value of the battery variable.
-	get func(power.Variable) (string, error)
+	get func(Variable) (string, error)
 	// set is the function used to write the battery charge limit value.
-	set func(power.Variable, string) error
+	set func(Variable, string) error
 	// systemder is used to write and delete systemd services that persist
 	// the charge limit after restart/hibernate/sleep.
 	systemder resetwriter
 }
 
-// errorf formats according to a format specifier, prints to standard
-// error, and exits with an error code 1.
+// Print to stderr using format, exit with error code 1
 func (a *app) errorf(format string, v ...any) {
 	fmt.Fprintf(a.console.err, format, v...)
 	a.console.quit(failure)
 }
 
-// errorln formats using the default format for its operands, appends a
-// new line, writes to standard error, and exits with error code 1.
+// Print to stderr with neline using format, exit with error code 1
 func (a *app) errorln(v ...any) {
 	a.errorf("%v\n", v...)
 }
 
-// writef formats according to a format specifier, prints to standard
-// input.
+// Print to stdout according to format specifier
 func (a *app) writef(format string, v ...any) {
 	fmt.Fprintf(a.console.out, format, v...)
 }
 
-// writeln formats using the default format for its operands, appends a
-// new line, and writes to standard input.
+// Print to stdout with newline using format for its operands
 func (a *app) writeln(v ...any) {
 	a.writef("%v\n", v...)
 }
 
-// page filters the string doc through the less pager.
+// Filter the string doc through the less pager
 func (a *app) page(doc string) {
 	cmd := exec.Command(
 		a.pager,
@@ -137,46 +137,79 @@ func (a *app) page(doc string) {
 	a.console.quit(success)
 }
 
-// show prints the value of the given /sys/class/power_supply/BAT?/
-// variable.
-func (a *app) show(v power.Variable) {
+// Return the value of the given /sys/class/power_supply/BAT?/ variable
+func (a *app) show(v Variable) string {
 	val, err := a.get(v)
 	if err != nil {
-		if errors.Is(err, power.ErrNotFound) {
+		if errors.Is(err, ErrNotFound) {
 			a.errorln(msgIncompatible)
-			return
 		}
 		log.Fatalln(err)
 	}
-	a.writeln(val)
+	return val
+}
+
+// Print the battery health
+func (a *app) health() string {
+	energy := false
+	var chargedesign string
+	var icharge, ichargedesign int
+	charge, err := a.get(ChargeFull)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) { // Try EnergyFull
+			charge, err = a.get(EnergyFull)
+			if errors.Is(err, ErrNotFound) {
+				a.errorln(msgIncompatible)
+			} else {
+				energy = true
+			}
+		} else {
+			log.Fatalln(err)
+		}
+	}
+	if energy {
+		chargedesign, err = a.get(EnergyFullDesign)
+	} else {
+		chargedesign, err = a.get(ChargeFullDesign)
+	}
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			a.errorln(msgIncompatible)
+		}
+		log.Fatalln(err)
+	}
+	icharge, err = strconv.Atoi(charge)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	ichargedesign, err = strconv.Atoi(chargedesign)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return (fmt.Sprintf("%d", icharge*100/ichargedesign))
 }
 
 func (a *app) help() {
 	buf := new(bytes.Buffer)
 	buf.Grow(1024)
-	tmpl := template.Must(template.New("help").Parse(help))
-	tmpl.Execute(buf, struct {
-		Tag string
-	}{
-		tag,
-	})
+	fmt.Fprint(buf, helpmsg)
 	a.page(buf.String())
 }
 
 func (a *app) version() {
 	buf := new(bytes.Buffer)
 	buf.Grow(128)
-	fmt.Fprintf(buf, version, tag, time.Now().Year())
+	fmt.Fprint(buf, versionmsg)
 	a.page(buf.String())
 }
 
 func (a *app) persist() {
 	if err := a.systemder.Write(); err != nil {
 		switch {
-		case errors.Is(err, systemd.ErrIncompatSystemd):
+		case errors.Is(err, ErrIncompatSystemd):
 			a.errorln(msgIncompatibleSystemd)
 			return
-		case errors.Is(err, power.ErrNotFound):
+		case errors.Is(err, ErrNotFound):
 			a.errorln(msgIncompatible)
 			return
 		case errors.Is(err, syscall.EACCES):
@@ -186,7 +219,7 @@ func (a *app) persist() {
 			log.Fatalln(err)
 		}
 	}
-	a.writeln(msgPersistenceEnabled)
+	a.writef("%s: %s%%\n", msgPersistenceEnabled, a.show(Threshold))
 }
 
 func (a *app) remove() {
@@ -208,44 +241,47 @@ func (a *app) disable() {
 		}
 		log.Fatal(err)
 	}
-	a.writeln(msgPersistenceDisabled)
+	a.writef("%s: %s%%\n", msgPersistenceDisabled, a.show(Threshold))
 }
 
-func (a *app) enabled() {
+func (a *app) enabled() string {
 	if err := a.systemder.Enabled(); err != nil {
-		a.writeln(msgFalse)
+		return msgFalse
 	} else {
-		a.writeln(msgTrue)
+		return msgTrue
 	}
 }
 
-func (a *app) present() {
+func (a *app) present() string {
 	if err := a.systemder.Present(); err != nil {
-		a.writeln(msgFalse)
+		return msgFalse
 	} else {
-		a.writeln(msgTrue)
+		return msgTrue
 	}
 }
 
 func (a *app) status() {
-	a.writef("%s", "Level: ")
-	a.show(power.Capacity)
-	a.writef("%s", "Limit: ")
-	a.show(power.Threshold)
-	a.show(power.Status)
-	a.writef("%s", "Persist systemd units present: ")
-	a.present()
-	a.writef("%s", "Persist systemd units enabled: ")
-	a.enabled()
+	a.writef("Level: %s%%\n", a.show(Capacity))
+	limit, _ := a.get(Threshold)
+	if limit != "" {
+		a.writef("Limit: %s%%\n", a.show(Threshold))
+	}
+	a.writef("Health: %s%%\n", a.health())
+	a.writeln(a.show(Status))
+	if limit != "" {
+		a.writef("Persist systemd units present: %s\n", a.present())
+		a.writef("Persist systemd units enabled: %s\n", a.enabled())
+	} else {
+		a.writeln("Charge limit is not supported")
+	}
 }
 
-// valid returns true if limit is in the range 1-100.
+// Return true if limit is in the range 1-100
 func valid(limit int) bool {
 	return limit >= 1 && limit <= 100
 }
 
-// kernel returns the Linux kernel version as a string and an error
-// otherwise.
+// Return the Linux kernel version as a string and an error otherwise
 func kernel() (string, error) {
 	var name unix.Utsname
 	if err := unix.Uname(&name); err != nil {
@@ -254,11 +290,10 @@ func kernel() (string, error) {
 	return string(name.Release[:]), nil
 }
 
-// isRequiredKernel returns true if the string ver represents a
-// semantic version later than 5.4 and false otherwise (this is the
-// earliest version of the Linux kernel to expose the battery charge
-// limit variable). It also returns an error if it failed parse the
-// string.
+// Return true if ver represents a semantic version later than 5.4
+// and false otherwise (5.4 is the earliest version of the Linux kernel
+// to expose the battery charge limit variable)
+// Returns error if parsing the string fails
 func requiredKernel(ver string) (bool, error) {
 	var maj, min int
 	_, err := fmt.Sscanf(ver, "%d.%d", &maj, &min)
@@ -303,9 +338,9 @@ func (a *app) limit(args []string) {
 		a.errorln(msgIncompatibleKernel)
 		return
 	}
-	if err := a.set(power.Threshold, strings.TrimSpace(val)); err != nil {
+	if err := a.set(Threshold, strings.TrimSpace(val)); err != nil {
 		switch {
-		case errors.Is(err, power.ErrNotFound):
+		case errors.Is(err, ErrNotFound):
 			a.errorln(msgIncompatible)
 			return
 		case errors.Is(err, syscall.EACCES):
@@ -318,8 +353,8 @@ func (a *app) limit(args []string) {
 	a.writeln(msgLimitSet)
 }
 
-// Run executes the application.
-func Run() {
+// Execute the application
+func main() {
 	app := &app{
 		console: &console{
 			err:  os.Stderr,
@@ -328,16 +363,15 @@ func Run() {
 		},
 		pager:     "less",
 		cat:       "cat",
-		get:       power.Get,
-		set:       power.Set,
-		systemder: systemd.New(),
+		get:       Get,
+		set:       Set,
+		systemder: New(),
 	}
 	if len(os.Args) == 1 {
 		app.status()
 		return
 	}
 	switch command := os.Args[1]; command {
-	// Generic program information.
 	case "h", "help", "-h", "--help":
 		app.help()
 	case "V", "v", "version", "-V", "-v", "--version":

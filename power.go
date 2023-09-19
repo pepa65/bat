@@ -1,5 +1,5 @@
-// Package power - I/O for /sys/class/power_supply
-package power
+// power.go - I/O for /sys/class/power_supply
+package main
 
 import (
 	"bytes"
@@ -16,6 +16,10 @@ const (
 	Capacity Variable = iota + 1
 	Status
 	Threshold
+	ChargeFull
+	ChargeFullDesign
+	EnergyFull
+	EnergyFullDesign
 )
 
 func (v Variable) String() string {
@@ -26,6 +30,14 @@ func (v Variable) String() string {
 		return "status"
 	case Threshold:
 		return "charge_control_end_threshold"
+	case ChargeFull:
+		return "charge_full"
+	case ChargeFullDesign:
+		return "charge_full_design"
+	case EnergyFull:
+		return "energy_full"
+	case EnergyFullDesign:
+		return "energy_full_design"
 	default:
 		return "unrecognised"
 	}
@@ -62,7 +74,7 @@ func find(v Variable) (string, error) {
 func Get(v Variable) (string, error) {
 	p, err := find(v)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	contents, err := os.ReadFile(p)
 	if err != nil {
