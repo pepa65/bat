@@ -1,8 +1,9 @@
-# bat v0.8.8
-**Manage battery charge limit**
-
 [![Go Report Card](https://goreportcard.com/badge/github.com/pepa65/bat)](https://goreportcard.com/report/github.com/pepa65/bat)
 [![GoDoc](https://godoc.org/github.com/pepa65/bat?status.svg)](https://godoc.org/github.com/pepa65/bat)
+![Continuous Integration](https://github.com/pepa65/bat/actions/workflows/ci.yaml/badge.svg)
+
+# bat v0.8.9
+**Manage battery charge limit**
 
 * Repo: github.com/pepa65/bat
 * After: github.com/tshakalekholoane/bat
@@ -10,7 +11,7 @@
 * Required: Linux-5.4+ systemd-244+
  
 ```
-bat v0.8.8 - Manage battery charge limit
+bat v0.8.9 - Manage battery charge limit
 Repo:  github.com/pepa65/bat
 Ref:   https://wiki.archlinux.org/title/Laptop/ASUS#Battery_charge_threshold
 Usage: bat <option>
@@ -41,7 +42,7 @@ This has been reported to only work with some ASUS and [Lenovo ThinkPad](https:/
 Precompiled binaries (Linux x86_64) are available from the [GitHub releases page](https://github.com/pepa65/bat/releases), download the [latest here](https://github.com/pepa65/bat/releases/latest/download/bat).
 
 ```shell
-sudo wget -qO /usr/local/bin/bat github.com/pepa65/bat/releases/latest/download/bat
+sudo wget -qO /usr/local/bin/bat "gitlab.com/pepa65/bat/-/jobs/artifacts/main/raw/bat?job=building"
 sudo chmod +x /usr/local/bin/bat
 ```
 
