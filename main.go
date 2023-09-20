@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	version                   = "0.8.10"
+	version                   = "0.9.0"
 	years                     = "2023"
 	msgTrue                   = "yes"
 	msgFalse                  = "no"
@@ -29,8 +29,7 @@ const (
 	msgOutOfRangeThresholdVal = "Percentage must be between 1 and 100"
 	msgPermissionDenied       = "Permission denied. Try running this command using 'sudo'"
 	msgPersistenceEnabled     = "Persist systemd units present and enabled"
-	msgPersistenceRemoved     = "Persist systemd units no longer present"
-	msgPersistenceDisabled    = "Persist systemd unit present but disabled"
+	msgPersistenceRemoved     = "Persist systemd units not present"
 	msgLimitSet               = "Charge limit set.\nRun 'sudo bat persist' to keep it after restart/hibernation/sleep"
 	msgIncompatible           = `This program is most likely not compatible with your system. See
 https://github.com/pepa65/bat#disclaimer for details`
@@ -46,14 +45,12 @@ var (
 Copyright `+years+" Tshaka Eric Lekholoane, github.com/pepa65 (MIT License)"
 	helpmsg = "bat v"+version+` - Manage battery charge limit
 Repo:  github.com/pepa65/bat
-Ref:   https://wiki.archlinux.org/title/Laptop/ASUS#Battery_charge_threshold
 Usage: bat <option>
   Options (every option except 's[tatus]' needs root privileges):
     [s[tatus]]       Display charge level, limit, health & persist status.
     l[imit] <int>    Set the charge limit to <int> percent.
     p[ersist]        Install and enable the persist systemd unit files.
     r[emove]         Remove the persist systemd unit files.
-    d[isable]        Disable the persist systemd unit files.
     h[elp]           Just display this help text.
     v[ersion]        Just display version information.`
 )
@@ -62,8 +59,6 @@ Usage: bat <option>
 type resetwriter interface {
 	Remove() error
 	Write() error
-	Disable() error
-	Present() error
 	Enabled() error
 }
 
@@ -233,27 +228,8 @@ func (a *app) remove() {
 	a.writeln(msgPersistenceRemoved)
 }
 
-func (a *app) disable() {
-	if err := a.systemder.Disable(); err != nil {
-		if errors.Is(err, syscall.EACCES) {
-			a.errorln(msgPermissionDenied)
-			return
-		}
-		log.Fatal(err)
-	}
-	a.writef("%s: %s%%\n", msgPersistenceDisabled, a.show(Threshold))
-}
-
 func (a *app) enabled() string {
 	if err := a.systemder.Enabled(); err != nil {
-		return msgFalse
-	} else {
-		return msgTrue
-	}
-}
-
-func (a *app) present() string {
-	if err := a.systemder.Present(); err != nil {
 		return msgFalse
 	} else {
 		return msgTrue
@@ -267,10 +243,9 @@ func (a *app) status() {
 		a.writef("Limit: %s%%\n", a.show(Threshold))
 	}
 	a.writef("Health: %s%%\n", a.health())
-	a.writeln(a.show(Status))
+	a.writef("Status: %s\n", a.show(Status))
 	if limit != "" {
-		a.writef("Persist systemd units present: %s\n", a.present())
-		a.writef("Persist systemd units enabled: %s\n", a.enabled())
+		a.writef("Persist: %s\n", a.enabled())
 	} else {
 		a.writeln("Charge limit is not supported")
 	}
@@ -382,8 +357,6 @@ func main() {
 		app.persist()
 	case "r", "remove", "-r", "--remove":
 		app.remove()
-	case "d", "disable", "-d", "--disable":
-		app.disable()
 	case "l", "limit", "-l", "--limit":
 		app.limit(os.Args)
 	default:

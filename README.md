@@ -2,7 +2,7 @@
 [![GoDoc](https://godoc.org/github.com/pepa65/bat?status.svg)](https://godoc.org/github.com/pepa65/bat)
 ![Continuous Integration](https://github.com/pepa65/bat/actions/workflows/ci.yaml/badge.svg)
 
-# bat v0.8.10
+# bat v0.9.0
 **Manage battery charge limit**
 
 * Repo: github.com/pepa65/bat
@@ -11,16 +11,14 @@
 * Required: Linux-5.4+ systemd-244+
  
 ```
-bat v0.8.10 - Manage battery charge limit
+bat v0.9.0 - Manage battery charge limit
 Repo:  github.com/pepa65/bat
-Ref:   https://wiki.archlinux.org/title/Laptop/ASUS#Battery_charge_threshold
 Usage: bat <option>
   Options (every option except 's[tatus]' needs root privileges):
     [s[tatus]]       Display charge level, limit, health & persist status.
     l[imit] <int>    Set the charge limit to <int> percent.
     p[ersist]        Install and enable the persist systemd unit files.
     r[emove]         Remove the persist systemd unit files.
-    d[isable]        Disable the persist systemd unit files.
     h[elp]           Just display this help text.
     v[ersion]        Just display version information.
 ```
@@ -64,9 +62,8 @@ Sample output:
 Level: 45%
 Limit: 80%
 Health: 85%
-Charging
-Persist systemd units present: yes
-Persist systemd units enabled: yes
+Status: Charging
+Persist: yes
 ```
 
 ### Set a battery charge limit in percentage points (requires privileges):

@@ -178,22 +178,13 @@ func (s *Systemd) enabled(cfgs []config) error {
 	})
 }
 
-// Present checks if all systemd services are installed.
-func (s *Systemd) Present() error {
+// Enabled checks if all systemd services are enabled.
+func (s *Systemd) Enabled() error {
 	cfgs, err := configs()
 	if err != nil {
 		return err
 	}
 	if err := s.present(cfgs); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Enabled checks if all systemd services are enabled.
-func (s *Systemd) Enabled() error {
-	cfgs, err := configs()
-	if err != nil {
 		return err
 	}
 	if err := s.enabled(cfgs); err != nil {
