@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	version                   = "0.9.0"
+	version                   = "0.9.1"
 	years                     = "2023"
 	msgTrue                   = "yes"
 	msgFalse                  = "no"
@@ -214,7 +214,7 @@ func (a *app) persist() {
 			log.Fatalln(err)
 		}
 	}
-	a.writef("%s: %s%%\n", msgPersistenceEnabled, a.show(Threshold))
+	a.writef("%s with Limit: %s%%\n", msgPersistenceEnabled, a.show(Threshold))
 }
 
 func (a *app) remove() {
