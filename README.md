@@ -2,7 +2,7 @@
 [![GoDoc](https://godoc.org/github.com/pepa65/bat?status.svg)](https://godoc.org/github.com/pepa65/bat)
 ![Continuous Integration](https://github.com/pepa65/bat/actions/workflows/ci.yaml/badge.svg)
 
-# bat v0.10.0
+# bat v0.11.0
 **Manage battery charge limit**
 
 * Repo: github.com/pepa65/bat
@@ -11,16 +11,16 @@
 * Required: Linux-5.4-rc1+ systemd-244+
  
 ```
-bat v0.10.0 - Manage battery charge limit
+bat v0.11.0 - Manage battery charge limit
 Repo:  github.com/pepa65/bat
 Usage: bat <option>
   Options (every option except 's[tatus]' needs root privileges):
-    [s[tatus]]       Display charge level, limit, health & persist status.
-    l[imit] <int>    Set the charge limit to <int> percent.
-    p[ersist]        Install and enable the persist systemd unit files.
-    r[emove]         Remove the persist systemd unit files.
-    h[elp]           Just display this help text.
-    v[ersion]        Just display version information.
+    [s[tatus]]         Display charge level, limit, health & persist status.
+    [l[imit]] <int>    Set the charge limit to <int> percent.
+    p[ersist]          Install and enable the persist systemd unit files.
+    r[emove]           Remove the persist systemd unit files.
+    h[elp]             Just display this help text.
+    v[ersion]          Just display version information.
 ```
 
 ## About
@@ -67,14 +67,34 @@ Persist: yes
 ```
 
 ### Set a battery charge limit in percentage points (requires privileges):
-`sudo bat limit 80`
+`sudo bat 80`
+
+Sample output:
+```
+Charge limit set, to make it persist, run:
+bat persist
+```
 
 ### Undo the battery charge limit (requires privileges):
-`sudo bat limit 100`
+`sudo bat 0`
+
+Sample output:
+```
+Charge limit unset
+```
 
 ### Persist the currently set charge limit after restart/hibernation/wake-up (requires privileges):
 `sudo bat persist`
 
+Sample output:
+```
+Persistence enabled for charge limit: 80
+```
+
 ### Remove the persist config settings (requires privileges):
 `sudo bat remove`
 
+Output:
+```
+Persistence of charge limit removed
+```

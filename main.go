@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	version   = "0.10.0"
+	version   = "0.11.0"
 	years     = "2023"
 	prefix    = "chargelimit-"
 	pathglob  = "/sys/class/power_supply/BAT?"
@@ -76,6 +76,11 @@ func main() {
 	case "V", "v", "version", "-V", "-v", "--version":
 		fmt.Printf(versionmsg, version, years)
 		os.Exit(0)
+	}
+	var limit string
+	if len(command) > 0 && command[0] >= '0' && command[0] <= '9' {
+		limit = command
+		command = "limit"
 	}
 
 	batteries, err := filepath.Glob(filepath.Join(pathglob, threshold))
@@ -173,7 +178,7 @@ func main() {
 			f, err := os.Create(file)
 			if err != nil {
 				if errors.Is(err, syscall.EACCES) {
-					errexit("insufficient permissions, try running with root privileges")
+					errexit("insufficient permissions, run with root privileges")
 				}
 
 				errexit("could not create systemd unit file '" + file + "'")
@@ -209,7 +214,7 @@ func main() {
 				case strings.Contains(message, "does not exist"):
 					continue
 				case strings.Contains(message, "Access denied"):
-					errexit("insufficient permissions, try running with root privileges")
+					errexit("insufficient permissions, run with root privileges")
         default:
 					errexit("failure to disable unit file '" + service + "'")
 				}
@@ -221,27 +226,36 @@ func main() {
 		}
 		fmt.Println("Persistence of charge limit removed")
 	case "l", "limit", "-l", "--limit":
-		limit := os.Args[2]
 		if limit == "" {
-			errexit("Argument to 'limit' missing")
+			limit = os.Args[2]
+			if limit == "" {
+				errexit("Argument to 'limit' missing")
+			}
 		}
 
 		ilimit, err := strconv.Atoi(limit)
-		if err != nil || ilimit < 1 || ilimit > 100 {
-			errexit("argument to limit must be an integer between 1 and 100")
+		if err != nil || ilimit < 0 || ilimit > 100 {
+			errexit("argument to limit must be an integer between 0 and 100")
 		}
 
+		if ilimit == 0 {
+			ilimit = 100
+		}
 		l := []byte(fmt.Sprintf("%d", ilimit))
 		err = os.WriteFile(batteries[0], l, 0o644)
 		if err != nil {
 			if errors.Is(err, syscall.EACCES) {
-				errexit("insufficient permissions, try running with root privileges")
+				errexit("insufficient permissions, run with root privileges")
 			}
 
 			errexit("could not set battery charge limit")
 		}
 
-		fmt.Println("Charging threshold set (run 'bat persist' to make it persist)")
+		if ilimit == 100 {
+			fmt.Println("Charge limit unset")
+		} else {
+			fmt.Println("Charge limit set, to make it persist, run:\nbat persist")
+		}
 	default:
 		usage()
 		errexit("argument '" + command + "' invalid")
