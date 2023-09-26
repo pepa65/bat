@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	version   = "0.12.0"
+	version   = "0.12.1"
 	years     = "2023"
 	prefix    = "chargelimit-"
 	syspath   = "/sys/class/power_supply/"
@@ -249,7 +249,7 @@ func main() {
 				errexit("failure to remove unit file '" + file + "'")
 			}
 		}
-		fmt.Println("[%s] Persistence of charge limit removed\n", bat)
+		fmt.Printf("[%s] Persistence of charge limit removed\n", bat)
 	case "l", "limit", "-l", "--limit":
 		if limit == "" {
 			limit = os.Args[2]
