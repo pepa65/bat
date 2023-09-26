@@ -2,7 +2,7 @@
 [![GoDoc](https://godoc.org/github.com/pepa65/bat?status.svg)](https://godoc.org/github.com/pepa65/bat)
 ![Continuous Integration](https://github.com/pepa65/bat/actions/workflows/ci.yaml/badge.svg)
 
-# bat v0.11.0
+# bat v0.12.0
 **Manage battery charge limit**
 
 * Repo: github.com/pepa65/bat
@@ -60,6 +60,7 @@ Or install by simply: `go install github.com/pepa65/bat@latest`
 
 Sample output:
 ```
+[BAT0]
 Level: 45%
 Limit: 80%
 Health: 85%
@@ -72,7 +73,7 @@ Persist: yes
 
 Sample output:
 ```
-Charge limit set, to make it persist, run:
+[BAT1] Charge limit set, to make it persist, run:
 bat persist
 ```
 
@@ -81,7 +82,7 @@ bat persist
 
 Sample output:
 ```
-Charge limit unset
+[BATC] Charge limit unset
 ```
 
 ### Persist the currently set charge limit after restart/hibernation/wake-up (requires privileges):
@@ -89,21 +90,21 @@ Charge limit unset
 
 Sample output:
 ```
-Persistence enabled for charge limit: 80
+[BATT] Persistence enabled for charge limit: 80
 ```
 
 ### Remove the persist config settings (requires privileges):
 `sudo bat remove`
 
-Output:
+Sample output:
 ```
-Persistence of charge limit removed
+[BAT0] Persistence of charge limit removed
 ```
 
-### Remove persist config settings for BAT0 (requires privileges):
-`sudo BAT_SELECT=BAT0 bat remove`
+### Remove persist config settings for BAT1 (requires privileges):
+`sudo BAT_SELECT=BAT1 bat remove`
 
 Output:
 ```
-Persistence of charge limit removed
+[BAT1] Persistence of charge limit removed
 ```
