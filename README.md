@@ -11,7 +11,7 @@
 * Required: Linux-5.4-rc1+ systemd-244+
  
 ```
-bat v0.11.0 - Manage battery charge limit
+bat v0.12.0 - Manage battery charge limit
 Repo:  github.com/pepa65/bat
 Usage: bat <option>
   Options (every option except 's[tatus]' needs root privileges):
@@ -21,6 +21,7 @@ Usage: bat <option>
     r[emove]           Remove the persist systemd unit files.
     h[elp]             Just display this help text.
     v[ersion]          Just display version information.
+The battery with regex 'BAT.' in environment variable BAT_SELECT will be used.
 ```
 
 ## About
@@ -93,6 +94,14 @@ Persistence enabled for charge limit: 80
 
 ### Remove the persist config settings (requires privileges):
 `sudo bat remove`
+
+Output:
+```
+Persistence of charge limit removed
+```
+
+### Remove persist config settings for BAT0 (requires privileges):
+`sudo BAT_SELECT=BAT0 bat remove`
 
 Output:
 ```

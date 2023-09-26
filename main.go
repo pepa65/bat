@@ -15,10 +15,10 @@ import (
 )
 
 const (
-	version   = "0.11.0"
+	version   = "0.12.0"
 	years     = "2023"
 	prefix    = "chargelimit-"
-	pathglob  = "/sys/class/power_supply/BAT?"
+	syspath   = "/sys/class/power_supply/"
   threshold = "charge_control_end_threshold"
   services  = "/etc/systemd/system/"
 )
@@ -37,20 +37,21 @@ var (
 	helpmsg    string
 	//go:embed version.tmpl
 	versionmsg string
-	path       string
+	batpath    string
+	bat        string
 )
 
 func usage() {
 	fmt.Printf(helpmsg, version)
 }
 
-func errexit(msg string) {
-	fmt.Fprintf(os.Stderr, "Fatal: %s\n", msg)
+func errexit(msg string) { // I:bat
+	fmt.Fprintf(os.Stderr, "[%s] Fatal: %s\n", bat, msg)
 	os.Exit(1)
 }
 
-func mustRead(variable string) string {
-	f, err := os.Open(filepath.Join(path, variable))
+func mustRead(variable string) string { // I:batpath
+	f, err := os.Open(filepath.Join(batpath, variable))
 	if err != nil {
 		return ""
 	}
@@ -64,10 +65,20 @@ func mustRead(variable string) string {
 }
 
 func main() {
+	maxArgs := 1
 	command := "status"
 	if len(os.Args) > 1 {
 		command = os.Args[1]
+		maxArgs = 2
 	}
+	switch command {
+	case "l", "limit", "-l", "--limit":
+		maxArgs = 3
+	}
+	if len(os.Args) > maxArgs {
+		errexit("too many arguments")
+	}
+
 	switch command {
 	case "h", "help", "-h", "--help":
 		usage()
@@ -83,18 +94,32 @@ func main() {
 		command = "limit"
 	}
 
-	batteries, err := filepath.Glob(filepath.Join(pathglob, threshold))
+	batselect := os.Getenv("BAT_SELECT")
+	batglob := batselect
+	if len(batselect) != 4 || batselect[:3] != "BAT" {
+		batglob = "BAT?"
+		batselect = ""
+	}
+	batteries, err := filepath.Glob(filepath.Join(syspath + batglob, threshold))
 	if err != nil || len(batteries) == 0 {
-		errexit("No compatible battery devices found")
+		bat = batglob
+		errexit("No compatible battery device found")
 	}
 
 	// Ignoring other compatible batteries!
-	path, _ = filepath.Split(batteries[0])
+	batpath, _ = filepath.Split(batteries[0])
+	bat = batpath[len(batpath)-5:len(batpath)-1]
 	if len(batteries) > 1 {
-		fmt.Println("More than 1 battery device found, using " + path)
+		fmt.Printf("More than 1 battery device found:")
+		corr := len(threshold) - 1
+		for _, battery := range batteries {
+			fmt.Printf(" %s", battery[len(battery)-3-corr:len(battery)-corr])
+		}
+		fmt.Println("")
 	}
 	switch command {
 	case "s", "status", "-s", "--status":
+		fmt.Printf("[%s]\n", bat)
 		fmt.Printf("Level: %s%%\n", mustRead("capacity"))
 		limit := mustRead(threshold)
 		if limit != "" {
@@ -201,7 +226,7 @@ func main() {
 			}
 		}
 
-		fmt.Printf("Persistence enabled for charge limit: %d\n", current)
+		fmt.Printf("[%s] Persistence enabled for charge limit: %d\n", bat, current)
 	case "r", "remove", "-r", "--remove":
 		for _, event := range events {
 			service := prefix + event + ".service"
@@ -224,7 +249,7 @@ func main() {
 				errexit("failure to remove unit file '" + file + "'")
 			}
 		}
-		fmt.Println("Persistence of charge limit removed")
+		fmt.Println("[%s] Persistence of charge limit removed\n", bat)
 	case "l", "limit", "-l", "--limit":
 		if limit == "" {
 			limit = os.Args[2]
@@ -252,9 +277,13 @@ func main() {
 		}
 
 		if ilimit == 100 {
-			fmt.Println("Charge limit unset")
+			fmt.Printf("[%s] Charge limit unset\n", bat)
 		} else {
-			fmt.Println("Charge limit set, to make it persist, run:\nbat persist")
+			var bselect string
+			if batselect != "" {
+				bselect = fmt.Sprintf("BAT_SELECT=%s ", batselect)
+			}
+			fmt.Printf("[%s] Charge limit set, to make it persist, run:\n%sbat persist", bat, bselect)
 		}
 	default:
 		usage()
