@@ -1,13 +1,13 @@
 [Unit]
-Description=Persist the battery charge limit after {{.Event}}
-After={{.Target}}.target
+Description=Persist the battery charge limit after %s
+After=%s.target
 StartLimitBurst=0
 
 [Service]
 Type=oneshot
+ExecStart=%s -c 'echo %d >%s'
 Restart=on-failure
-ExecStart=/bin/sh -c 'b=$(echo /sys/class/power_supply/BAT?/charge_control_end_threshold); echo {{.Threshold}} >"$b"'
 RemainAfterExit=true
 
 [Install]
-WantedBy={{.Target}}.target
+WantedBy=%s.target

@@ -2,16 +2,16 @@
 [![GoDoc](https://godoc.org/github.com/pepa65/bat?status.svg)](https://godoc.org/github.com/pepa65/bat)
 ![Continuous Integration](https://github.com/pepa65/bat/actions/workflows/ci.yaml/badge.svg)
 
-# bat v0.9.1
+# bat v0.10.0
 **Manage battery charge limit**
 
 * Repo: github.com/pepa65/bat
 * After: github.com/tshakalekholoane/bat
 * License: MIT
-* Required: Linux-5.4+ systemd-244+
+* Required: Linux-5.4-rc1+ systemd-244+
  
 ```
-bat v0.9.1 - Manage battery charge limit
+bat v0.10.0 - Manage battery charge limit
 Repo:  github.com/pepa65/bat
 Usage: bat <option>
   Options (every option except 's[tatus]' needs root privileges):

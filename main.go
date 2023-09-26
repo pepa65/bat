@@ -2,364 +2,248 @@
 package main
 
 import (
-	"bytes"
+	_ "embed"
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
-
-	"golang.org/x/sys/unix"
 )
 
 const (
-	version                   = "0.9.1"
-	years                     = "2023"
-	msgTrue                   = "yes"
-	msgFalse                  = "no"
-	msgArgNotInt              = "Argument must be an integer"
-	msgExpectedSingleArg      = "Single argument needed"
-	msgIncompatibleKernel     = "Linux kernel version 5.4 or later required"
-	msgIncompatibleSystemd    = "Package systemd version 243-rc1 or later required"
-	msgNoOption               = "Option %s not implemented. Run `bat help` to see the available options.\n"
-	msgOutOfRangeThresholdVal = "Percentage must be between 1 and 100"
-	msgPermissionDenied       = "Permission denied. Try running this command using 'sudo'"
-	msgPersistenceEnabled     = "Persist systemd units present and enabled"
-	msgPersistenceRemoved     = "Persist systemd units not present"
-	msgLimitSet               = "Charge limit set.\nRun 'sudo bat persist' to keep it after restart/hibernation/sleep"
-	msgIncompatible           = `This program is most likely not compatible with your system. See
-https://github.com/pepa65/bat#disclaimer for details`
+	version   = "0.10.0"
+	years     = "2023"
+	prefix    = "chargelimit-"
+	pathglob  = "/sys/class/power_supply/BAT?"
+  threshold = "charge_control_end_threshold"
+  services  = "/etc/systemd/system/"
 )
 
-const (
-	success = iota
-	failure
-)
+var events = [...]string{
+	"hibernate",
+	"hybrid-sleep",
+	"multi-user",
+	"suspend",
+	"suspend-then-hibernate",}
 
 var (
-	versionmsg = "bat v"+version+`
-Copyright `+years+" Tshaka Eric Lekholoane, github.com/pepa65 (MIT License)"
-	helpmsg = "bat v"+version+` - Manage battery charge limit
-Repo:  github.com/pepa65/bat
-Usage: bat <option>
-  Options (every option except 's[tatus]' needs root privileges):
-    [s[tatus]]       Display charge level, limit, health & persist status.
-    l[imit] <int>    Set the charge limit to <int> percent.
-    p[ersist]        Install and enable the persist systemd unit files.
-    r[emove]         Remove the persist systemd unit files.
-    h[elp]           Just display this help text.
-    v[ersion]        Just display version information.`
+	//go:embed unit.tmpl
+	unitfile   string
+	//go:embed help.tmpl
+	helpmsg    string
+	//go:embed version.tmpl
+	versionmsg string
+	path       string
 )
 
-// resetwriter is the interface that groups the methods to access systemd services.
-type resetwriter interface {
-	Remove() error
-	Write() error
-	Enabled() error
+func usage() {
+	fmt.Printf(helpmsg, version)
 }
 
-// console represents a text terminal user interface.
-type console struct {
-	// err represents standard error.
-	err io.Writer
-	// out represents standard output.
-	out io.Writer
-	// quit is the function that sets the exit code.
-	quit func(code int)
+func errexit(msg string) {
+	fmt.Fprintf(os.Stderr, "Fatal: %s\n", msg)
+	os.Exit(1)
 }
 
-// app represents this application and its dependencies.
-type app struct {
-	console *console
-	// pager is the path of the pager.
-	pager string
-	// cat is the path of cat for fallback.
-	cat string
-	// get is the function used to read the value of the battery variable.
-	get func(Variable) (string, error)
-	// set is the function used to write the battery charge limit value.
-	set func(Variable, string) error
-	// systemder is used to write and delete systemd services that persist
-	// the charge limit after restart/hibernate/sleep.
-	systemder resetwriter
-}
-
-// Print to stderr using format, exit with error code 1
-func (a *app) errorf(format string, v ...any) {
-	fmt.Fprintf(a.console.err, format, v...)
-	a.console.quit(failure)
-}
-
-// Print to stderr with neline using format, exit with error code 1
-func (a *app) errorln(v ...any) {
-	a.errorf("%v\n", v...)
-}
-
-// Print to stdout according to format specifier
-func (a *app) writef(format string, v ...any) {
-	fmt.Fprintf(a.console.out, format, v...)
-}
-
-// Print to stdout with newline using format for its operands
-func (a *app) writeln(v ...any) {
-	a.writef("%v\n", v...)
-}
-
-// Filter the string doc through the less pager
-func (a *app) page(doc string) {
-	cmd := exec.Command(
-		a.pager,
-		"--no-init",
-		"--chop-long-lines",
-		"--quit-if-one-screen",
-		"--IGNORE-CASE",
-		"--RAW-CONTROL-CHARS",
-	)
-	cmd.Stdin = strings.NewReader(doc)
-	cmd.Stdout = a.console.out
-	if err := cmd.Run(); err != nil {
-		cmd := exec.Command(a.cat)
-		cmd.Stdin = strings.NewReader(doc)
-		cmd.Stdout = a.console.out
-		if err := cmd.Run(); err != nil {
-			log.Fatalln(err)
-		}
-	}
-	a.console.quit(success)
-}
-
-// Return the value of the given /sys/class/power_supply/BAT?/ variable
-func (a *app) show(v Variable) string {
-	val, err := a.get(v)
+func mustRead(variable string) string {
+	f, err := os.Open(filepath.Join(path, variable))
 	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			a.errorln(msgIncompatible)
-		}
-		log.Fatalln(err)
+		return ""
 	}
-	return val
+	defer f.Close()
+	data := make([]byte, 32)
+	n, err := f.Read(data)
+	if err != nil && err != io.EOF {
+		return ""
+	}
+	return string(data[:n-1])
 }
 
-// Print the battery health
-func (a *app) health() string {
-	energy := false
-	var chargedesign string
-	var icharge, ichargedesign int
-	charge, err := a.get(ChargeFull)
-	if err != nil {
-		if errors.Is(err, ErrNotFound) { // Try EnergyFull
-			charge, err = a.get(EnergyFull)
-			if errors.Is(err, ErrNotFound) {
-				a.errorln(msgIncompatible)
-			} else {
-				energy = true
+func main() {
+	command := "status"
+	if len(os.Args) > 1 {
+		command = os.Args[1]
+	}
+	switch command {
+	case "h", "help", "-h", "--help":
+		usage()
+		os.Exit(0)
+
+	case "V", "v", "version", "-V", "-v", "--version":
+		fmt.Printf(versionmsg, version, years)
+		os.Exit(0)
+	}
+
+	batteries, err := filepath.Glob(filepath.Join(pathglob, threshold))
+	if err != nil || len(batteries) == 0 {
+		errexit("No compatible battery devices found")
+	}
+
+	// Ignoring other compatible batteries!
+	path, _ = filepath.Split(batteries[0])
+	if len(batteries) > 1 {
+		fmt.Println("More than 1 battery device found, using " + path)
+	}
+	switch command {
+	case "s", "status", "-s", "--status":
+		fmt.Printf("Level: %s%%\n", mustRead("capacity"))
+		limit := mustRead(threshold)
+		if limit != "" {
+			fmt.Printf("Limit: %s%%\n", limit)
+		}
+		var health, full, design string
+		var ifull, idesign int
+		full = mustRead("charge_full")
+		if full == "" { // Try energy_full
+			full = mustRead("energy_full")
+			if full != "" {
+				design = mustRead("energy_full_design")
 			}
 		} else {
-			log.Fatalln(err)
+			design = mustRead("charge_full_design")
 		}
-	}
-	if energy {
-		chargedesign, err = a.get(EnergyFullDesign)
-	} else {
-		chargedesign, err = a.get(ChargeFullDesign)
-	}
-	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			a.errorln(msgIncompatible)
+		if full != "" && design != "" {
+			ifull, err = strconv.Atoi(full)
+			if err == nil && ifull > 0 {
+				idesign, err = strconv.Atoi(design)
+				if err == nil && idesign > 0 {
+					health = fmt.Sprintf("%d", ifull*100/idesign)
+				}
+			}
 		}
-		log.Fatalln(err)
-	}
-	icharge, err = strconv.Atoi(charge)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	ichargedesign, err = strconv.Atoi(chargedesign)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	return (fmt.Sprintf("%d", icharge*100/ichargedesign))
-}
-
-func (a *app) help() {
-	buf := new(bytes.Buffer)
-	buf.Grow(1024)
-	fmt.Fprint(buf, helpmsg)
-	a.page(buf.String())
-}
-
-func (a *app) version() {
-	buf := new(bytes.Buffer)
-	buf.Grow(128)
-	fmt.Fprint(buf, versionmsg)
-	a.page(buf.String())
-}
-
-func (a *app) persist() {
-	if err := a.systemder.Write(); err != nil {
-		switch {
-		case errors.Is(err, ErrIncompatSystemd):
-			a.errorln(msgIncompatibleSystemd)
-			return
-		case errors.Is(err, ErrNotFound):
-			a.errorln(msgIncompatible)
-			return
-		case errors.Is(err, syscall.EACCES):
-			a.errorln(msgPermissionDenied)
-			return
-		default:
-			log.Fatalln(err)
+		if health != "" {
+			fmt.Printf("Health: %s%%\n", health)
+		} else {
+			fmt.Println("Health cannot be determined")
 		}
-	}
-	a.writef("%s with Limit: %s%%\n", msgPersistenceEnabled, a.show(Threshold))
-}
-
-func (a *app) remove() {
-	if err := a.systemder.Remove(); err != nil {
-		if errors.Is(err, syscall.EACCES) {
-			a.errorln(msgPermissionDenied)
-			return
+		fmt.Printf("Status: %s\n", mustRead("status"))
+		if limit != "" {
+			var disabled bool
+			for _, event := range events {
+				service := prefix + event + ".service"
+				output, _ := exec.Command("systemctl", "is-active", service).Output()
+				if string(output) != "active\n" {
+					disabled = true
+				}
+			}
+			enabled := "yes"
+			if disabled {
+				enabled = "no"
+			}
+			fmt.Printf("Persist: %s\n", enabled)
+		} else {
+			fmt.Println("Charge limit is not supported")
 		}
-		log.Fatal(err)
-	}
-	a.writeln(msgPersistenceRemoved)
-}
-
-func (a *app) enabled() string {
-	if err := a.systemder.Enabled(); err != nil {
-		return msgFalse
-	} else {
-		return msgTrue
-	}
-}
-
-func (a *app) status() {
-	a.writef("Level: %s%%\n", a.show(Capacity))
-	limit, _ := a.get(Threshold)
-	if limit != "" {
-		a.writef("Limit: %s%%\n", a.show(Threshold))
-	}
-	a.writef("Health: %s%%\n", a.health())
-	a.writef("Status: %s\n", a.show(Status))
-	if limit != "" {
-		a.writef("Persist: %s\n", a.enabled())
-	} else {
-		a.writeln("Charge limit is not supported")
-	}
-}
-
-// Return true if limit is in the range 1-100
-func valid(limit int) bool {
-	return limit >= 1 && limit <= 100
-}
-
-// Return the Linux kernel version as a string and an error otherwise
-func kernel() (string, error) {
-	var name unix.Utsname
-	if err := unix.Uname(&name); err != nil {
-		return "", err
-	}
-	return string(name.Release[:]), nil
-}
-
-// Return true if ver represents a semantic version later than 5.4
-// and false otherwise (5.4 is the earliest version of the Linux kernel
-// to expose the battery charge limit variable)
-// Returns error if parsing the string fails
-func requiredKernel(ver string) (bool, error) {
-	var maj, min int
-	_, err := fmt.Sscanf(ver, "%d.%d", &maj, &min)
-	if err != nil {
-		return false, err
-	}
-	if maj > 5 || (maj == 5 && min >= 4) {
-		return true, nil
-	}
-	return false, nil
-}
-
-func (a *app) limit(args []string) {
-	if len(args) != 3 {
-		a.errorln(msgExpectedSingleArg)
-		return
-	}
-	val := args[2]
-	t, err := strconv.Atoi(val)
-	if err != nil {
-		if errors.Is(err, strconv.ErrSyntax) {
-			a.errorln(msgArgNotInt)
-			return
-		}
-		log.Fatal(err)
-	}
-	if !valid(t) {
-		a.errorln(msgOutOfRangeThresholdVal)
-		return
-	}
-	ver, err := kernel()
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	ok, err := requiredKernel(ver)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	if !ok {
-		a.errorln(msgIncompatibleKernel)
-		return
-	}
-	if err := a.set(Threshold, strings.TrimSpace(val)); err != nil {
-		switch {
-		case errors.Is(err, ErrNotFound):
-			a.errorln(msgIncompatible)
-			return
-		case errors.Is(err, syscall.EACCES):
-			a.errorln(msgPermissionDenied)
-			return
-		default:
-			log.Fatal(err)
-		}
-	}
-	a.writeln(msgLimitSet)
-}
-
-// Execute the application
-func main() {
-	app := &app{
-		console: &console{
-			err:  os.Stderr,
-			out:  os.Stdout,
-			quit: os.Exit,
-		},
-		pager:     "less",
-		cat:       "cat",
-		get:       Get,
-		set:       Set,
-		systemder: New(),
-	}
-	if len(os.Args) == 1 {
-		app.status()
-		return
-	}
-	switch command := os.Args[1]; command {
-	case "h", "help", "-h", "--help":
-		app.help()
-	case "V", "v", "version", "-V", "-v", "--version":
-		app.version()
-	case "s", "status", "-s", "--status":
-		app.status()
 	case "p", "persist", "-p", "--persist":
-		app.persist()
+		output, err := exec.Command("systemctl", "--version").CombinedOutput()
+		if err != nil {
+			errexit("cannot run 'systemctl --version'")
+		}
+
+		var version int
+		_, err = fmt.Sscanf(string(output), "systemd %d", &version)
+		if err != nil {
+			errexit("cannot read version from 'systemctl --version'")
+		}
+
+		if version < 244 { // oneshot not implemented yet
+			errexit("systemd version 244-r1 or later required")
+		}
+
+		limit := mustRead(threshold)
+		if limit == "" {
+			errexit("cannot read current limit from '" + threshold + "'")
+		}
+		current, err := strconv.Atoi(limit)
+		if err != nil || current == 0 {
+			errexit("cannot convert '" + limit + "' to integer")
+		}
+
+		shell, err := exec.LookPath("sh")
+		if err != nil && !errors.Is(err, exec.ErrNotFound) { // Just set /bin/sh as shell
+			shell = "/bin/sh"
+		}
+		for _, event := range events {
+			service := prefix + event + ".service"
+			file := services + service
+			f, err := os.Create(file)
+			if err != nil {
+				if errors.Is(err, syscall.EACCES) {
+					errexit("insufficient permissions, try running with root privileges")
+				}
+
+				errexit("could not create systemd unit file '" + file + "'")
+			}
+
+			defer f.Close()
+			_, err = f.WriteString(fmt.Sprintf(unitfile, event, event, shell, current, batteries[0], event))
+			if err != nil {
+				errexit("could not instantiate systemd unit file '" + service + "'")
+			}
+
+			exec.Command("systemctl", "stop", service).Run()
+			err = exec.Command("systemctl", "start", service).Run()
+			if err != nil {
+				errexit("could not start systemd unit file '" + service + "'")
+			}
+			err = exec.Command("systemctl", "enable", service).Run()
+			if err != nil {
+				errexit("could not enable systemd unit file '" + service + "'")
+			}
+		}
+
+		fmt.Printf("Persistence enabled for charge limit: %d\n", current)
 	case "r", "remove", "-r", "--remove":
-		app.remove()
+		for _, event := range events {
+			service := prefix + event + ".service"
+			file := services + service
+			exec.Command("systemctl", "stop", service).Run()
+			output, err := exec.Command("systemctl", "disable", service).CombinedOutput()
+			if err != nil {
+				message := string(output)
+				switch true {
+				case strings.Contains(message, "does not exist"):
+					continue
+				case strings.Contains(message, "Access denied"):
+					errexit("insufficient permissions, try running with root privileges")
+        default:
+					errexit("failure to disable unit file '" + service + "'")
+				}
+			}
+			err = os.Remove(file)
+			if err != nil && !errors.Is(err, syscall.ENOENT) {
+				errexit("failure to remove unit file '" + file + "'")
+			}
+		}
+		fmt.Println("Persistence of charge limit removed")
 	case "l", "limit", "-l", "--limit":
-		app.limit(os.Args)
+		limit := os.Args[2]
+		if limit == "" {
+			errexit("Argument to 'limit' missing")
+		}
+
+		ilimit, err := strconv.Atoi(limit)
+		if err != nil || ilimit < 1 || ilimit > 100 {
+			errexit("argument to limit must be an integer between 1 and 100")
+		}
+
+		l := []byte(fmt.Sprintf("%d", ilimit))
+		err = os.WriteFile(batteries[0], l, 0o644)
+		if err != nil {
+			if errors.Is(err, syscall.EACCES) {
+				errexit("insufficient permissions, try running with root privileges")
+			}
+
+			errexit("could not set battery charge limit")
+		}
+
+		fmt.Println("Charging threshold set (run 'bat persist' to make it persist)")
 	default:
-		app.errorf(msgNoOption, command)
+		usage()
+		errexit("argument '" + command + "' invalid")
 	}
 }
