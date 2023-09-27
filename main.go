@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	version   = "0.12.2"
+	version   = "0.13.0"
 	years     = "2023"
 	prefix    = "chargelimit-"
 	syspath   = "/sys/class/power_supply/"
@@ -100,23 +100,23 @@ func main() {
 		batglob = "BAT?"
 		batselect = ""
 	}
-	batteries, err := filepath.Glob(filepath.Join(syspath + batglob, threshold))
+	batteries, err := filepath.Glob(syspath + batglob)
 	if err != nil || len(batteries) == 0 {
 		bat = batglob
-		errexit("No compatible battery device found")
+		errexit("No battery device found")
 	}
 
-	// Ignoring other compatible batteries!
-	batpath, _ = filepath.Split(batteries[0])
-	bat = batpath[len(batpath)-5:len(batpath)-1]
+	// Ignoring any other batteries!
+	batpath = batteries[0]
+	bat = batpath[len(batpath)-4:]
 	if len(batteries) > 1 {
 		fmt.Printf("More than 1 battery device found:")
-		corr := len(threshold) - 1
 		for _, battery := range batteries {
-			fmt.Printf(" %s", battery[len(battery)-3-corr:len(battery)-corr])
+			fmt.Printf(" %s", battery[len(battery)-4:])
 		}
 		fmt.Println("")
 	}
+	thresholdpath := filepath.Join(batpath, threshold)
 	switch command {
 	case "s", "status", "-s", "--status":
 		fmt.Printf("[%s]\n", bat)
@@ -210,7 +210,7 @@ func main() {
 			}
 
 			defer f.Close()
-			_, err = f.WriteString(fmt.Sprintf(unitfile, event, event, shell, current, batteries[0], event))
+			_, err = f.WriteString(fmt.Sprintf(unitfile, event, event, shell, current, thresholdpath, event))
 			if err != nil {
 				errexit("could not instantiate systemd unit file '" + service + "'")
 			}
@@ -267,7 +267,7 @@ func main() {
 			ilimit = 100
 		}
 		l := []byte(fmt.Sprintf("%d", ilimit))
-		err = os.WriteFile(batteries[0], l, 0o644)
+		err = os.WriteFile(thresholdpath, l, 0o644)
 		if err != nil {
 			if errors.Is(err, syscall.EACCES) {
 				errexit("insufficient permissions, run with root privileges")
