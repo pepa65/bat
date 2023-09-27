@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	version   = "0.12.1"
+	version   = "0.12.2"
 	years     = "2023"
 	prefix    = "chargelimit-"
 	syspath   = "/sys/class/power_supply/"
@@ -283,7 +283,7 @@ func main() {
 			if batselect != "" {
 				bselect = fmt.Sprintf("BAT_SELECT=%s ", batselect)
 			}
-			fmt.Printf("[%s] Charge limit set, to make it persist, run:\n%sbat persist", bat, bselect)
+			fmt.Printf("[%s] Charge limit set, to make it persist, run:\n%sbat persist\n", bat, bselect)
 		}
 	default:
 		usage()
