@@ -2,7 +2,7 @@
 [![GoDoc](https://godoc.org/github.com/pepa65/bat?status.svg)](https://godoc.org/github.com/pepa65/bat)
 ![Continuous Integration](https://github.com/pepa65/bat/actions/workflows/ci.yaml/badge.svg)
 
-# bat v0.13.0
+# bat v0.14.0
 **Manage battery charge limit**
 
 * Repo: github.com/pepa65/bat
@@ -11,7 +11,7 @@
 * Required: Linux-5.4-rc1+ systemd-244+
  
 ```
-bat v0.13.0 - Manage battery charge limit
+bat v0.14.0 - Manage battery charge limit
 Repo:  github.com/pepa65/bat
 Usage: bat <option>
   Options (every option except 's[tatus]' needs root privileges):
@@ -29,6 +29,7 @@ The goal is to replicate the functionality of the [ASUS Battery Health Charging]
 
 * Linux kernel module: `asus_nb_wmi`
 * System variables used: `/sys/class/power_supply/BAT?/`
+* Persist states for `systemd`: `hibernate`, `hybrid-sleep`, `multi-user`, `sleep`, `suspend`, `suspend-then-hibernate`
 
 ## Requirements
 * **Linux kernel version later than 5.4-rc1** which is the [earliest version to expose the battery charge limit variable](https://github.com/torvalds/linux/commit/7973353e92ee1e7ca3b2eb361a4b7cb66c92abee).

@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	version   = "0.13.0"
+	version   = "0.14.0"
 	years     = "2023"
 	prefix    = "chargelimit-"
 	syspath   = "/sys/class/power_supply/"
@@ -27,6 +27,7 @@ var events = [...]string{
 	"hibernate",
 	"hybrid-sleep",
 	"multi-user",
+	"sleep",
 	"suspend",
 	"suspend-then-hibernate",}
 
