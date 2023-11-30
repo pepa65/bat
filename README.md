@@ -2,7 +2,7 @@
 [![GoDoc](https://godoc.org/github.com/pepa65/bat?status.svg)](https://godoc.org/github.com/pepa65/bat)
 ![Continuous Integration](https://github.com/pepa65/bat/actions/workflows/ci.yaml/badge.svg)
 
-# bat v0.14.0
+# bat v0.15.0
 **Manage battery charge limit**
 
 * Repo: github.com/pepa65/bat
@@ -11,14 +11,14 @@
 * Required: Linux-5.4-rc1+ systemd-244+
  
 ```
-bat v0.14.0 - Manage battery charge limit
+bat v0.15.0 - Manage battery charge limit
 Repo:  github.com/pepa65/bat
 Usage: bat <option>
   Options (every option except 's[tatus]' needs root privileges):
     [s[tatus]]         Display charge level, limit, health & persist status.
     [l[imit]] <int>    Set the charge limit to <int> percent.
-    p[ersist]          Install and enable the persist systemd unit files.
-    r[emove]           Remove the persist systemd unit files.
+    p[ersist]          Persist the charge limit after driver reloads.
+    r[emove]           Do not persist the charge limit after driver reloads.
     h[elp]             Just display this help text.
     v[ersion]          Just display version information.
 The battery with regex 'BAT.' in environment variable BAT_SELECT will be used.

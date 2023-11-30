@@ -4,8 +4,8 @@ Usage: bat <option>
   Options (every option except 's[tatus]' needs root privileges):
     [s[tatus]]         Display charge level, limit, health & persist status.
     [l[imit]] <int>    Set the charge limit to <int> percent.
-    p[ersist]          Install and enable the persist systemd unit files.
-    r[emove]           Remove the persist systemd unit files.
+    p[ersist]          Persist the charge limit after driver reloads.
+    r[emove]           Do not persist the charge limit after driver reloads.
     h[elp]             Just display this help text.
     v[ersion]          Just display version information.
-The battery with regex 'BAT.' in environment variable BAT_SELECT will be used.
+If environment variable BAT_SELECT is set to regex 'BAT.' then it will be used.

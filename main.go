@@ -15,27 +15,29 @@ import (
 )
 
 const (
-	version   = "0.14.0"
-	years     = "2023"
-	prefix    = "chargelimit-"
-	syspath   = "/sys/class/power_supply/"
-  threshold = "charge_control_end_threshold"
-  services  = "/etc/systemd/system/"
+	version       = "0.15.0"
+	years         = "2023"
+	prefix        = "chargelimit-"
+	services      = "/etc/systemd/system/"
+	sleepfilename = "/usr/lib/systemd/system-sleep/chargelimit"
+	syspath       = "/sys/class/power_supply/"
+	threshold     = "charge_control_end_threshold"
 )
 
 var events = [...]string{
 	"hibernate",
 	"hybrid-sleep",
 	"multi-user",
-	"sleep",
 	"suspend",
-	"suspend-then-hibernate",}
+	"suspend-then-hibernate"}
 
 var (
 	//go:embed unit.tmpl
-	unitfile   string
+	unitfile string
+	//go:embed system-sleep.tmpl
+	sleepfile string
 	//go:embed help.tmpl
-	helpmsg    string
+	helpmsg string
 	//go:embed version.tmpl
 	versionmsg string
 	batpath    string
@@ -161,6 +163,10 @@ func main() {
 					disabled = true
 				}
 			}
+			_, err = os.Stat(sleepfilename)
+			if errors.Is(err, os.ErrNotExist) {
+				disabled = true
+			}
 			enabled := "yes"
 			if disabled {
 				enabled = "no"
@@ -226,9 +232,19 @@ func main() {
 				errexit("could not enable systemd unit file '" + service + "'")
 			}
 		}
+		f, err := os.Create(sleepfilename)
+		if err != nil {
+			errexit("could not create system-sleep file '" + sleepfilename + "'")
+		}
+		defer f.Close()
+		_, err = f.WriteString(fmt.Sprintf(sleepfile, current, bat, current, bat))
+		if err != nil {
+			errexit("could not instantiate system-sleep file '" + sleepfilename + "'")
+		}
 
 		fmt.Printf("[%s] Persistence enabled for charge limit: %d\n", bat, current)
 	case "r", "remove", "-r", "--remove":
+		os.Remove(sleepfilename)
 		for _, event := range events {
 			service := prefix + event + ".service"
 			file := services + service
@@ -241,7 +257,7 @@ func main() {
 					continue
 				case strings.Contains(message, "Access denied"):
 					errexit("insufficient permissions, run with root privileges")
-        default:
+				default:
 					errexit("failure to disable unit file '" + service + "'")
 				}
 			}
