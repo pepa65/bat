@@ -1,6 +1,7 @@
 #!/bin/sh
-# %d charge_control_end_threshold for %s
+# Persist battery %s charge limit of %d%% after sleep
 
 test "x$1" = "xpost" &&
 	/usr/bin/echo %d >/sys/class/power_supply/%s/charge_control_end_threshold
+
 exit 0

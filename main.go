@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	version       = "0.15.0"
+	version       = "0.16.0"
 	years         = "2023"
 	prefix        = "chargelimit-"
 	services      = "/etc/systemd/system/"
@@ -24,14 +24,14 @@ const (
 	threshold     = "charge_control_end_threshold"
 )
 
-var events = [...]string{
-	"hibernate",
-	"hybrid-sleep",
-	"multi-user",
-	"suspend",
-	"suspend-then-hibernate"}
-
 var (
+	events = [...]string{
+		"hibernate",
+		"hybrid-sleep",
+		"multi-user",
+		"suspend",
+		"suspend-then-hibernate",
+	}
 	//go:embed unit.tmpl
 	unitfile string
 	//go:embed system-sleep.tmpl
@@ -91,7 +91,7 @@ func main() {
 		fmt.Printf(versionmsg, version, years)
 		os.Exit(0)
 	}
-	var limit string
+	limit := ""
 	if len(command) > 0 && command[0] >= '0' && command[0] <= '9' {
 		limit = command
 		command = "limit"
@@ -155,7 +155,7 @@ func main() {
 		}
 		fmt.Printf("Status: %s\n", mustRead("status"))
 		if limit != "" {
-			var disabled bool
+			disabled := false
 			for _, event := range events {
 				service := prefix + event + ".service"
 				output, _ := exec.Command("systemctl", "is-active", service).Output()
@@ -217,7 +217,7 @@ func main() {
 			}
 
 			defer f.Close()
-			_, err = f.WriteString(fmt.Sprintf(unitfile, event, event, shell, current, thresholdpath, event))
+			_, err = f.WriteString(fmt.Sprintf(unitfile, bat, current, event, event, shell, current, thresholdpath, event))
 			if err != nil {
 				errexit("could not instantiate systemd unit file '" + service + "'")
 			}
@@ -237,7 +237,7 @@ func main() {
 			errexit("could not create system-sleep file '" + sleepfilename + "'")
 		}
 		defer f.Close()
-		_, err = f.WriteString(fmt.Sprintf(sleepfile, current, bat, current, bat))
+		_, err = f.WriteString(fmt.Sprintf(sleepfile, bat, current, current, bat))
 		if err != nil {
 			errexit("could not instantiate system-sleep file '" + sleepfilename + "'")
 		}
@@ -296,7 +296,7 @@ func main() {
 		if ilimit == 100 {
 			fmt.Printf("[%s] Charge limit unset\n", bat)
 		} else {
-			var bselect string
+			bselect := ""
 			if batselect != "" {
 				bselect = fmt.Sprintf("BAT_SELECT=%s ", batselect)
 			}
