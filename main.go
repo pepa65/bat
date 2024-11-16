@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	version       = "0.16.0"
-	years         = "2023"
+	version       = "0.16.1"
+	years         = "2023-2024"
 	prefix        = "chargelimit-"
 	services      = "/etc/systemd/system/"
 	sleepfilename = "/usr/lib/systemd/system-sleep/chargelimit"
@@ -158,13 +158,14 @@ func main() {
 			disabled := false
 			for _, event := range events {
 				service := prefix + event + ".service"
-				output, _ := exec.Command("systemctl", "is-active", service).Output()
-				if string(output) != "active\n" {
+				output, _ := exec.Command("systemctl", "is-enabled", service).Output()
+				if string(output) != "enabled\n" {
 					disabled = true
 				}
 			}
 			_, err = os.Stat(sleepfilename)
 			if errors.Is(err, os.ErrNotExist) {
+fmt.Println("No sleepfile")
 				disabled = true
 			}
 			enabled := "yes"
